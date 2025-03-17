@@ -1,0 +1,14 @@
+invariant "./protocols/flash/flash_PI_Local_Get_Get1_1"
+  !(sta.Dir.HomeInvSet = true);
+invariant "./protocols/flash/flash_PI_Local_Get_Get1_2"
+  !(sta.Dir.ShrSet[2] = true & sta.Dir.Dirty = true);
+invariant "./protocols/flash/flash_PI_Local_Get_Get1_3"
+  !(sta.Dir.Local = false & sta.Dir.Dirty = true & sta.Dir.InvSet[2] = true & sta.Dir.HeadPtr = 2);
+invariant "./protocols/flash/flash_PI_Local_Get_Get1_4"
+  !(sta.Dir.Pending = false & sta.Dir.InvSet[1] = true & sta.Dir.Dirty = true);
+invariant "./protocols/flash/flash_PI_Local_Get_Get1_5"
+  !(sta.Dir.HomeShrSet = true);
+invariant "./protocols/flash/flash_PI_Local_Get_Get1_6"
+  !(sta.Dir.HomeHeadPtr = true & sta.Dir.Local = false & sta.Dir.Dirty = true);
+invariant "./protocols/flash/flash_PI_Local_Get_Get1_7"
+  !(sta.UniMsg[2].HomeProc = false & sta.Proc[2].ProcCmd = node_getx & sta.Dir.Local = true & sta.Dir.HeadPtr = 2);

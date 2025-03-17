@@ -1,0 +1,4 @@
+invariant "./protocols/moesi/Moesi_t11_1"
+  !(sta[1] = e_em & sta[2] = m_em);
+invariant "./protocols/moesi/Moesi_t11_1_t12_1"
+  !(sta[1] = e_em & sta[2] = e_em);

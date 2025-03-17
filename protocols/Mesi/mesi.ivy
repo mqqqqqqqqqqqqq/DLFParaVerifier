@@ -1,0 +1,70 @@
+#lang ivy1.7
+
+type node_t = 1..NODE_NUM
+
+type location_t = {mm_em, e_em, s_em, i_em}
+
+individual state_v(D:node_t) : location_t
+
+
+after init{
+    require state_v(A) = i_em;
+    
+    }
+
+
+action t1 = {
+    local i: node_t {
+    require state_v(i) = e_em;
+    state_v(i) := mm_em;
+    }
+}
+
+
+
+action t2 = {
+    local i: node_t {
+    require state_v(i) = i_em;
+    state_v(i) := s_em;
+        if (A ~= i & state_v(A) = i_em) {
+      state_v(A) := i_em;
+      };
+        if (A ~= i & state_v(A) ~= i_em) {
+      state_v(A) := s_em;
+      };
+    }
+}
+
+
+
+action t3 = {
+    local i: node_t {
+    require state_v(i) = s_em;
+    state_v(i) := e_em;
+        if (A ~= i) {
+      state_v(A) := i_em;
+      };
+    }
+}
+
+
+
+action t4 = {
+    local i: node_t {
+    require state_v(i) = mm_em;
+    state_v(i) := e_em;
+        if (A ~= i) {
+      state_v(A) := i_em;
+      };
+    }
+}
+
+
+
+export t1
+export t2
+export t3
+export t4
+
+
+conjecture ~(forall A.~(state_v(A) = e_em) & ~(state_v(A) = i_em) & ~(state_v(A) = s_em) & ~(state_v(A) = mm_em))

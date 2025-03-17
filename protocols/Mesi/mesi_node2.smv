@@ -1,0 +1,157 @@
+MODULE main
+VAR
+state[1] : {mm, e, s, i};
+state[2] : {mm, e, s, i};
+
+--------------------
+
+n_t1__1 : process Proc__n_t1__1(state[1]);
+
+n_t1__2 : process Proc__n_t1__2(state[2]);
+
+n_t2__1 : process Proc__n_t2__1(state[1], state[2]);
+
+n_t2__2 : process Proc__n_t2__2(state[2], state[1]);
+
+n_t3__1 : process Proc__n_t3__1(state[1], state[2]);
+
+n_t3__2 : process Proc__n_t3__2(state[2], state[1]);
+
+n_t4__1 : process Proc__n_t4__1(state[1], state[2]);
+
+n_t4__2 : process Proc__n_t4__2(state[2], state[1]);
+
+--------------------
+
+ASSIGN
+init(state[1]) := case
+TRUE : i;
+esac;
+init(state[2]) := case
+TRUE : i;
+esac;
+
+--------------------
+
+
+
+--------------------
+
+MODULE Proc__n_t1__1(state__1)
+ASSIGN
+next(state__1) := case
+(state__1 = e) : mm;
+TRUE : state__1;
+esac;
+
+---------
+
+MODULE Proc__n_t1__2(state__2)
+ASSIGN
+next(state__2) := case
+(state__2 = e) : mm;
+TRUE : state__2;
+esac;
+
+---------
+
+
+---------
+
+MODULE Proc__n_t2__1(state__1, state__2)
+ASSIGN
+next(state__1) := case
+(state__1 = i) : s;
+(state__1 = i & 1 != 1 & state__1 = i) : i;
+(state__1 = i & 1 != 1 & state__1 != i) : s;
+TRUE : state__1;
+esac;
+next(state__2) := case
+(state__1 = i & 2 != 1 & state__2 = i) : i;
+(state__1 = i & 2 != 1 & state__2 != i) : s;
+TRUE : state__2;
+esac;
+
+---------
+
+MODULE Proc__n_t2__2(state__2, state__1)
+ASSIGN
+next(state__2) := case
+(state__2 = i) : s;
+(state__2 = i & 2 != 2 & state__2 = i) : i;
+(state__2 = i & 2 != 2 & state__2 != i) : s;
+TRUE : state__2;
+esac;
+next(state__1) := case
+(state__2 = i & 1 != 2 & state__1 = i) : i;
+(state__2 = i & 1 != 2 & state__1 != i) : s;
+TRUE : state__1;
+esac;
+
+---------
+
+
+---------
+
+MODULE Proc__n_t3__1(state__1, state__2)
+ASSIGN
+next(state__1) := case
+(state__1 = s) : e;
+(state__1 = s & 1 != 1) : i;
+TRUE : state__1;
+esac;
+next(state__2) := case
+(state__1 = s & 2 != 1) : i;
+TRUE : state__2;
+esac;
+
+---------
+
+MODULE Proc__n_t3__2(state__2, state__1)
+ASSIGN
+next(state__2) := case
+(state__2 = s) : e;
+(state__2 = s & 2 != 2) : i;
+TRUE : state__2;
+esac;
+next(state__1) := case
+(state__2 = s & 1 != 2) : i;
+TRUE : state__1;
+esac;
+
+---------
+
+
+---------
+
+MODULE Proc__n_t4__1(state__1, state__2)
+ASSIGN
+next(state__1) := case
+(state__1 = mm) : e;
+(state__1 = mm & 1 != 1) : i;
+TRUE : state__1;
+esac;
+next(state__2) := case
+(state__1 = mm & 2 != 1) : i;
+TRUE : state__2;
+esac;
+
+---------
+
+MODULE Proc__n_t4__2(state__2, state__1)
+ASSIGN
+next(state__2) := case
+(state__2 = mm) : e;
+(state__2 = mm & 2 != 2) : i;
+TRUE : state__2;
+esac;
+next(state__1) := case
+(state__2 = mm & 1 != 2) : i;
+TRUE : state__1;
+esac;
+
+---------
+
+
+---------
+

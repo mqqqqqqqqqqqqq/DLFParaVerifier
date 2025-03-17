@@ -1,0 +1,298 @@
+calculate the reachability with: 65.22054433822632 s.
+Protocol flash has a reachability diameter of 50
+
+inv_split:  [OpExpr(=, sta.Proc[2].CacheState, cache_e), OpExpr(=, sta.Dir.Local, true)]
+new_form:  sta.Proc[2].CacheState = cache_e
+ivy_form:  sta_Proc_CacheState(B) = cache_e
+new_form:  sta.Dir.Local = true
+sta_Dir_Local
+ivy_form:  sta_Dir_Local = true
+inv_split:  [OpExpr(=, sta.Dir.ShrSet[1], true), OpExpr(=, sta.Dir.Dirty, true)]
+new_form:  sta.Dir.ShrSet[1] = true
+ivy_form:  sta.dir.shrset(A) = true
+new_form:  sta.Dir.Dirty = true
+sta_Dir_Dirty
+ivy_form:  sta_Dir_Dirty = true
+inv_split:  [OpExpr(=, sta.UniMsg[2].HomeProc, false), OpExpr(=, sta.Dir.Local, false), OpExpr(=, sta.Dir.InvSet[1], true), OpExpr(=, sta.Dir.Dirty, true)]
+new_form:  sta.UniMsg[2].HomeProc = false
+new_form:  sta.Dir.InvSet[1] = true
+inv_split:  [OpExpr(=, sta.Dir.Pending, false), OpExpr(=, sta.Dir.InvSet[1], true), OpExpr(=, sta.Dir.Dirty, true)]
+new_form:  sta.Dir.Pending = false
+sta_Dir_Pending
+ivy_form:  sta_Dir_Pending = false
+new_form:  sta.Dir.InvSet[1] = true
+ivy_form:  sta.dir.invset(A) = true
+new_form:  sta.Dir.Dirty = true
+sta_Dir_Dirty
+ivy_form:  sta_Dir_Dirty = true
+inv_split:  [OpExpr(=, sta.Dir.HomeInvSet, true)]
+new_form:  sta.Dir.HomeInvSet = true
+sta_Dir_HomeInvSet
+ivy_form:  sta_Dir_HomeInvSet = true
+inv_split:  [OpExpr(=, sta.Dir.HomeShrSet, true)]
+new_form:  sta.Dir.HomeShrSet = true
+sta_Dir_HomeShrSet
+ivy_form:  sta_Dir_HomeShrSet = true
+inv_split:  [OpExpr(=, sta.Dir.Pending, false), OpExpr(=, sta.Proc[2].CacheState, cache_e), OpExpr(=, sta.Dir.HeadPtr, 1)]
+new_form:  sta.Dir.Pending = false
+sta_Dir_Pending
+ivy_form:  sta_Dir_Pending = false
+new_form:  sta.Proc[2].CacheState = cache_e
+ivy_form:  sta_Proc_CacheState(B) = cache_e
+new_form:  sta.Dir.HeadPtr = 1
+sta_Dir_HeadPtr
+ivy_form:  sta_Dir_HeadPtr = 1
+inv_split:  [OpExpr(=, sta.InvMsg[1].Cmd, inv_invack), OpExpr(=, sta.Dir.InvSet[1], false)]
+new_form:  sta.InvMsg[1].Cmd = inv_invack
+ivy_form:  sta_InvMsg_Cmd(A) = inv_invack
+new_form:  sta.Dir.InvSet[1] = false
+ivy_form:  sta.dir.invset(A) = false
+inv_split:  [OpExpr(=, sta.Dir.HeadVld, true), OpExpr(=, sta.Dir.Local, true), OpExpr(=, sta.Dir.Dirty, true)]
+new_form:  sta.Dir.HeadVld = true
+sta_Dir_HeadVld
+ivy_form:  sta_Dir_HeadVld = true
+new_form:  sta.Dir.Local = true
+sta_Dir_Local
+ivy_form:  sta_Dir_Local = true
+new_form:  sta.Dir.Dirty = true
+sta_Dir_Dirty
+ivy_form:  sta_Dir_Dirty = true
+inv_split:  [OpExpr(=, sta.Dir.HomeHeadPtr, true), OpExpr(=, sta.Dir.Local, false), OpExpr(=, sta.Dir.Dirty, true)]
+new_form:  sta.Dir.HomeHeadPtr = true
+sta_Dir_HomeHeadPtr
+ivy_form:  sta_Dir_HomeHeadPtr = true
+new_form:  sta.Dir.Local = false
+sta_Dir_Local
+ivy_form:  sta_Dir_Local = false
+new_form:  sta.Dir.Dirty = true
+sta_Dir_Dirty
+ivy_form:  sta_Dir_Dirty = true
+inv_split:  [OpExpr(=, sta.UniMsg[1].HomeProc, false), OpExpr(=, sta.Proc[1].ProcCmd, node_getx), OpExpr(=, sta.Dir.Local, true), OpExpr(=, sta.Dir.HeadPtr, 1)]
+new_form:  sta.UniMsg[1].HomeProc = false
+ivy_form:  sta_UniMsg_HomeProc(A) = false
+new_form:  sta.Proc[1].ProcCmd = node_getx
+ivy_form:  sta_Proc_ProcCmd(A) = node_getx
+new_form:  sta.Dir.Local = true
+sta_Dir_Local
+ivy_form:  sta_Dir_Local = true
+new_form:  sta.Dir.HeadPtr = 1
+sta_Dir_HeadPtr
+ivy_form:  sta_Dir_HeadPtr = 1
+inv_split:  [OpExpr(=, sta.Dir.HomeHeadPtr, true), OpExpr(=, sta.UniMsg[2].HomeProc, false)]
+new_form:  sta.Dir.HomeHeadPtr = true
+sta_Dir_HomeHeadPtr
+ivy_form:  sta_Dir_HomeHeadPtr = true
+new_form:  sta.UniMsg[2].HomeProc = false
+ivy_form:  sta_UniMsg_HomeProc(B) = false
+inv_split:  [OpExpr(=, sta.HomeProc.CacheState, cache_i), OpExpr(=, sta.Dir.Local, true), OpExpr(=, sta.Dir.Dirty, true)]
+new_form:  sta.HomeProc.CacheState = cache_i
+sta_HomeProc_CacheState
+ivy_form:  sta_HomeProc_CacheState = cache_i
+new_form:  sta.Dir.Local = true
+sta_Dir_Local
+ivy_form:  sta_Dir_Local = true
+new_form:  sta.Dir.Dirty = true
+sta_Dir_Dirty
+ivy_form:  sta_Dir_Dirty = true
+inv_split:  [OpExpr(=, sta.HomeProc.CacheState, cache_s), OpExpr(=, sta.Dir.Dirty, true)]
+new_form:  sta.HomeProc.CacheState = cache_s
+sta_HomeProc_CacheState
+ivy_form:  sta_HomeProc_CacheState = cache_s
+new_form:  sta.Dir.Dirty = true
+sta_Dir_Dirty
+ivy_form:  sta_Dir_Dirty = true
+inv_split:  [OpExpr(=, sta.HomeProc.CacheState, cache_e), OpExpr(=, sta.Dir.InvSet[1], false), OpExpr(=, sta.Dir.InvSet[2], false), OpExpr(=, sta.Dir.Pending, true)]
+new_form:  sta.Dir.InvSet[1] = false
+inv_split:  [OpExpr(=, sta.Proc[1].CacheState, cache_e), OpExpr(=, sta.Dir.InvSet[1], true)]
+new_form:  sta.Proc[1].CacheState = cache_e
+ivy_form:  sta_Proc_CacheState(A) = cache_e
+new_form:  sta.Dir.InvSet[1] = true
+ivy_form:  sta.dir.invset(A) = true
+inv_split:  [OpExpr(=, sta.Dir.InvSet[1], true), OpExpr(=, sta.Dir.Pending, true), OpExpr(=, sta.InvMsg[1].Cmd, inv_none)]
+new_form:  sta.Dir.InvSet[1] = true
+ivy_form:  sta.dir.invset(A) = true
+new_form:  sta.Dir.Pending = true
+sta_Dir_Pending
+ivy_form:  sta_Dir_Pending = true
+new_form:  sta.InvMsg[1].Cmd = inv_none
+ivy_form:  sta_InvMsg_Cmd(A) = inv_none
+inv_split:  [OpExpr(=, sta.HomeProc.CacheState, cache_s), OpExpr(=, sta.Dir.Pending, true)]
+new_form:  sta.HomeProc.CacheState = cache_s
+sta_HomeProc_CacheState
+ivy_form:  sta_HomeProc_CacheState = cache_s
+new_form:  sta.Dir.Pending = true
+sta_Dir_Pending
+ivy_form:  sta_Dir_Pending = true
+inv_split:  [OpExpr(=, sta.Proc[2].ProcCmd, node_get), OpExpr(=, sta.UniMsg[2].Cmd, uni_none)]
+new_form:  sta.Proc[2].ProcCmd = node_get
+ivy_form:  sta_Proc_ProcCmd(B) = node_get
+new_form:  sta.UniMsg[2].Cmd = uni_none
+ivy_form:  sta_UniMsg_Cmd(B) = uni_none
+inv_split:  [OpExpr(=, sta.UniMsg[1].Cmd, uni_get), OpExpr(=, sta.UniMsg[1].HomeProc, false), OpExpr(=, sta.UniMsg[2].HomeProc, false), OpExpr(=, sta.Proc[2].ProcCmd, node_getx), OpExpr(=, sta.Dir.Dirty, false)]
+new_form:  sta.UniMsg[1].Cmd = uni_get
+new_form:  sta.UniMsg[1].HomeProc = false
+new_form:  sta.UniMsg[2].HomeProc = false
+new_form:  sta.Proc[2].ProcCmd = node_getx
+inv_split:  [OpExpr(=, sta.Proc[2].ProcCmd, node_getx), OpExpr(=, sta.UniMsg[2].Cmd, uni_none)]
+new_form:  sta.Proc[2].ProcCmd = node_getx
+ivy_form:  sta_Proc_ProcCmd(B) = node_getx
+new_form:  sta.UniMsg[2].Cmd = uni_none
+ivy_form:  sta_UniMsg_Cmd(B) = uni_none
+inv_split:  [OpExpr(=, sta.UniMsg[1].Cmd, uni_get), OpExpr(=, sta.UniMsg[2].Cmd, uni_get), OpExpr(=, sta.UniMsg[1].HomeProc, false), OpExpr(=, sta.UniMsg[2].HomeProc, false)]
+new_form:  sta.UniMsg[1].Cmd = uni_get
+ivy_form:  sta_UniMsg_Cmd(A) = uni_get
+new_form:  sta.UniMsg[2].Cmd = uni_get
+ivy_form:  sta_UniMsg_Cmd(B) = uni_get
+new_form:  sta.UniMsg[1].HomeProc = false
+ivy_form:  sta_UniMsg_HomeProc(A) = false
+new_form:  sta.UniMsg[2].HomeProc = false
+ivy_form:  sta_UniMsg_HomeProc(B) = false
+inv_split:  [OpExpr(=, sta.UniMsg[1].Cmd, uni_get), OpExpr(=, sta.UniMsg[1].HomeProc, false), OpExpr(=, sta.UniMsg[2].HomeProc, false), OpExpr(=, sta.UniMsg[2].Cmd, uni_getx)]
+new_form:  sta.UniMsg[1].Cmd = uni_get
+ivy_form:  sta_UniMsg_Cmd(A) = uni_get
+new_form:  sta.UniMsg[1].HomeProc = false
+ivy_form:  sta_UniMsg_HomeProc(A) = false
+new_form:  sta.UniMsg[2].HomeProc = false
+ivy_form:  sta_UniMsg_HomeProc(B) = false
+new_form:  sta.UniMsg[2].Cmd = uni_getx
+ivy_form:  sta_UniMsg_Cmd(B) = uni_getx
+inv_split:  [OpExpr(=, sta.UniMsg[2].Cmd, uni_putx), OpExpr(=, sta.Dir.Dirty, false)]
+new_form:  sta.UniMsg[2].Cmd = uni_putx
+ivy_form:  sta_UniMsg_Cmd(B) = uni_putx
+new_form:  sta.Dir.Dirty = false
+sta_Dir_Dirty
+ivy_form:  sta_Dir_Dirty = false
+inv_split:  [OpExpr(=, sta.Dir.HeadVld, false), OpExpr(=, sta.Dir.InvSet[1], false), OpExpr(=, sta.Dir.InvSet[2], false), OpExpr(=, sta.Dir.Dirty, true), OpExpr(=, sta.Dir.Pending, true)]
+new_form:  sta.Dir.InvSet[1] = false
+inv_split:  [OpExpr(=, sta.UniMsg[2].Cmd, uni_putx), OpExpr(=, sta.Proc[2].ProcCmd, node_get)]
+new_form:  sta.UniMsg[2].Cmd = uni_putx
+ivy_form:  sta_UniMsg_Cmd(B) = uni_putx
+new_form:  sta.Proc[2].ProcCmd = node_get
+ivy_form:  sta_Proc_ProcCmd(B) = node_get
+inv_split:  [OpExpr(=, sta.UniMsg[1].HomeProc, false), OpExpr(=, sta.UniMsg[1].Cmd, uni_getx), OpExpr(=, sta.UniMsg[2].HomeProc, false), OpExpr(=, sta.UniMsg[2].Cmd, uni_getx)]
+new_form:  sta.UniMsg[1].HomeProc = false
+ivy_form:  sta_UniMsg_HomeProc(A) = false
+new_form:  sta.UniMsg[1].Cmd = uni_getx
+ivy_form:  sta_UniMsg_Cmd(A) = uni_getx
+new_form:  sta.UniMsg[2].HomeProc = false
+ivy_form:  sta_UniMsg_HomeProc(B) = false
+new_form:  sta.UniMsg[2].Cmd = uni_getx
+ivy_form:  sta_UniMsg_Cmd(B) = uni_getx
+inv_split:  [OpExpr(=, sta.HomeProc.ProcCmd, node_get), OpExpr(=, sta.Dir.Local, true)]
+new_form:  sta.HomeProc.ProcCmd = node_get
+sta_HomeProc_ProcCmd
+ivy_form:  sta_HomeProc_ProcCmd = node_get
+new_form:  sta.Dir.Local = true
+sta_Dir_Local
+ivy_form:  sta_Dir_Local = true
+inv_split:  [OpExpr(=, sta.Dir.Local, true), OpExpr(=, sta.HomeProc.ProcCmd, node_getx)]
+new_form:  sta.Dir.Local = true
+sta_Dir_Local
+ivy_form:  sta_Dir_Local = true
+new_form:  sta.HomeProc.ProcCmd = node_getx
+sta_HomeProc_ProcCmd
+ivy_form:  sta_HomeProc_ProcCmd = node_getx
+inv_split:  [OpExpr(=, sta.UniMsg[2].Cmd, uni_get), OpExpr(=, sta.Proc[2].ProcCmd, node_getx)]
+new_form:  sta.UniMsg[2].Cmd = uni_get
+ivy_form:  sta_UniMsg_Cmd(B) = uni_get
+new_form:  sta.Proc[2].ProcCmd = node_getx
+ivy_form:  sta_Proc_ProcCmd(B) = node_getx
+inv_split:  [OpExpr(=, sta.Dir.Pending, false), OpExpr(=, sta.UniMsg[2].HomeProc, false), OpExpr(=, sta.UniMsg[2].Cmd, uni_getx)]
+new_form:  sta.Dir.Pending = false
+sta_Dir_Pending
+ivy_form:  sta_Dir_Pending = false
+new_form:  sta.UniMsg[2].HomeProc = false
+ivy_form:  sta_UniMsg_HomeProc(B) = false
+new_form:  sta.UniMsg[2].Cmd = uni_getx
+ivy_form:  sta_UniMsg_Cmd(B) = uni_getx
+inv_split:  [OpExpr(=, sta.UniMsg[2].Cmd, uni_get), OpExpr(=, sta.Dir.Pending, false), OpExpr(=, sta.UniMsg[2].HomeProc, false)]
+new_form:  sta.UniMsg[2].Cmd = uni_get
+ivy_form:  sta_UniMsg_Cmd(B) = uni_get
+new_form:  sta.Dir.Pending = false
+sta_Dir_Pending
+ivy_form:  sta_Dir_Pending = false
+new_form:  sta.UniMsg[2].HomeProc = false
+ivy_form:  sta_UniMsg_HomeProc(B) = false
+inv_split:  [OpExpr(=, sta.Proc[2].CacheState, cache_e), OpExpr(=, sta.Dir.Dirty, false)]
+new_form:  sta.Proc[2].CacheState = cache_e
+ivy_form:  sta_Proc_CacheState(B) = cache_e
+new_form:  sta.Dir.Dirty = false
+sta_Dir_Dirty
+ivy_form:  sta_Dir_Dirty = false
+inv_split:  [OpExpr(=, sta.Proc[2].CacheState, cache_e), OpExpr(=, sta.HomeProc.CacheState, cache_e)]
+new_form:  sta.Proc[2].CacheState = cache_e
+ivy_form:  sta_Proc_CacheState(B) = cache_e
+new_form:  sta.HomeProc.CacheState = cache_e
+sta_HomeProc_CacheState
+ivy_form:  sta_HomeProc_CacheState = cache_e
+inv_split:  [OpExpr(=, sta.Proc[2].CacheState, cache_e), OpExpr(=, sta.HomeUniMsg.Cmd, uni_put)]
+new_form:  sta.Proc[2].CacheState = cache_e
+ivy_form:  sta_Proc_CacheState(B) = cache_e
+new_form:  sta.HomeUniMsg.Cmd = uni_put
+sta_HomeUniMsg_Cmd
+ivy_form:  sta_HomeUniMsg_Cmd = uni_put
+inv_split:  [OpExpr(=, sta.Proc[2].CacheState, cache_e), OpExpr(=, sta.HomeUniMsg.Cmd, uni_putx)]
+new_form:  sta.Proc[2].CacheState = cache_e
+ivy_form:  sta_Proc_CacheState(B) = cache_e
+new_form:  sta.HomeUniMsg.Cmd = uni_putx
+sta_HomeUniMsg_Cmd
+ivy_form:  sta_HomeUniMsg_Cmd = uni_putx
+inv_split:  [OpExpr(=, sta.Dir.Local, true), OpExpr(=, sta.UniMsg[2].Cmd, uni_putx)]
+new_form:  sta.Dir.Local = true
+sta_Dir_Local
+ivy_form:  sta_Dir_Local = true
+new_form:  sta.UniMsg[2].Cmd = uni_putx
+ivy_form:  sta_UniMsg_Cmd(B) = uni_putx
+inv_split:  [OpExpr(=, sta.Dir.ShrSet[1], true), OpExpr(=, sta.Dir.HeadVld, false)]
+new_form:  sta.Dir.ShrSet[1] = true
+ivy_form:  sta.dir.shrset(A) = true
+new_form:  sta.Dir.HeadVld = false
+sta_Dir_HeadVld
+ivy_form:  sta_Dir_HeadVld = false
+inv_split:  [OpExpr(=, sta.Dir.InvSet[1], true), OpExpr(=, sta.Dir.Pending, false), OpExpr(=, sta.Dir.HeadVld, false)]
+new_form:  sta.Dir.InvSet[1] = true
+ivy_form:  sta.dir.invset(A) = true
+new_form:  sta.Dir.Pending = false
+sta_Dir_Pending
+ivy_form:  sta_Dir_Pending = false
+new_form:  sta.Dir.HeadVld = false
+sta_Dir_HeadVld
+ivy_form:  sta_Dir_HeadVld = false
+inv_split:  [OpExpr(=, sta.Dir.InvSet[1], true), OpExpr(=, sta.NakcMsg.Cmd, nakc_nakc)]
+new_form:  sta.Dir.InvSet[1] = true
+ivy_form:  sta.dir.invset(A) = true
+new_form:  sta.NakcMsg.Cmd = nakc_nakc
+sta_NakcMsg_Cmd
+ivy_form:  sta_NakcMsg_Cmd = nakc_nakc
+inv_split:  [OpExpr(=, sta.Dir.InvSet[1], true), OpExpr(=, sta.HomeUniMsg.Cmd, uni_putx)]
+new_form:  sta.Dir.InvSet[1] = true
+ivy_form:  sta.dir.invset(A) = true
+new_form:  sta.HomeUniMsg.Cmd = uni_putx
+sta_HomeUniMsg_Cmd
+ivy_form:  sta_HomeUniMsg_Cmd = uni_putx
+inv_split:  [OpExpr(=, sta.Dir.InvSet[1], true), OpExpr(=, sta.ShWbMsg.Cmd, shwb_fack)]
+new_form:  sta.Dir.InvSet[1] = true
+ivy_form:  sta.dir.invset(A) = true
+new_form:  sta.ShWbMsg.Cmd = shwb_fack
+sta_ShWbMsg_Cmd
+ivy_form:  sta_ShWbMsg_Cmd = shwb_fack
+inv_split:  [OpExpr(=, sta.ShWbMsg.HomeProc, true), OpExpr(=, sta.ShWbMsg.Cmd, shwb_shwb)]
+new_form:  sta.ShWbMsg.HomeProc = true
+sta_ShWbMsg_HomeProc
+ivy_form:  sta_ShWbMsg_HomeProc = true
+new_form:  sta.ShWbMsg.Cmd = shwb_shwb
+sta_ShWbMsg_Cmd
+ivy_form:  sta_ShWbMsg_Cmd = shwb_shwb
+inv_split:  [OpExpr(=, sta.HomeRpMsg.Cmd, rp_replace)]
+new_form:  sta.HomeRpMsg.Cmd = rp_replace
+sta_HomeRpMsg_Cmd
+ivy_form:  sta_HomeRpMsg_Cmd = rp_replace
+inv_split:  [OpExpr(=, sta.Dir.HeadPtr, 1), OpExpr(=, sta.Proc[2].CacheState, cache_e), OpExpr(=, sta.NakcMsg.Cmd, nakc_nakc)]
+new_form:  sta.Dir.HeadPtr = 1
+sta_Dir_HeadPtr
+ivy_form:  sta_Dir_HeadPtr = 1
+new_form:  sta.Proc[2].CacheState = cache_e
+ivy_form:  sta_Proc_CacheState(B) = cache_e
+new_form:  sta.NakcMsg.Cmd = nakc_nakc
+sta_NakcMsg_Cmd
+ivy_form:  sta_NakcMsg_Cmd = nakc_nakc

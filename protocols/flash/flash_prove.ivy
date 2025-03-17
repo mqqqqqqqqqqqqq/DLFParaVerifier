@@ -1,0 +1,1324 @@
+#lang ivy1.7
+
+type node_t
+
+type cache_state_t = {cache_i, cache_s, cache_e}
+
+type node_cmd_t = {node_none, node_get, node_getx}
+
+type uni_cmd_t = {uni_none, uni_get, uni_getx, uni_put, uni_putx, uni_nak}
+
+type inv_cmd_t = {inv_none, inv_inv, inv_invack}
+
+type rp_cmd_t = {rp_none, rp_replace}
+
+type wb_cmd_t = {wb_none, wb_wb}
+
+type shwb_cmd_t = {shwb_none, shwb_shwb, shwb_fack}
+
+type nakc_cmd_t = {nakc_none, nakc_nakc}
+
+individual sta_Proc_ProcCmd(X:node_t) : node_cmd_t
+individual sta_Proc_InvMarked(D:node_t) : bool
+individual sta_Proc_CacheState(J:node_t) : cache_state_t
+
+individual sta_HomeProc_ProcCmd : node_cmd_t
+individual sta_HomeProc_InvMarked : bool
+individual sta_HomeProc_CacheState : cache_state_t
+
+individual sta_Dir_Pending : bool
+individual sta_Dir_Local : bool
+individual sta_Dir_Dirty : bool
+individual sta_Dir_HeadVld : bool
+individual sta_Dir_HeadPtr : node_t
+individual sta_Dir_HomeHeadPtr : bool
+individual sta_Dir_ShrVld : bool
+individual sta_Dir_ShrSet(Z:node_t) : bool
+individual sta_Dir_HomeShrSet : bool
+individual sta_Dir_InvSet(L:node_t) : bool
+individual sta_Dir_HomeInvSet : bool
+
+individual sta_UniMsg_Cmd(Y:node_t) : uni_cmd_t
+
+function sta_UniMsg_Proc(F:node_t, E:node_t) : bool
+
+individual sta_UniMsg_HomeProc(Q:node_t) : bool
+
+individual sta_HomeUniMsg_Cmd : uni_cmd_t
+individual sta_HomeUniMsg_Proc : node_t
+individual sta_HomeUniMsg_HomeProc : bool
+
+individual sta_InvMsg_Cmd(Y:node_t) : inv_cmd_t
+
+individual sta_HomeInvMsg_Cmd : inv_cmd_t
+
+individual sta_RpMsg_Cmd(L:node_t) : rp_cmd_t
+
+individual sta_HomeRpMsg_Cmd : rp_cmd_t
+
+individual sta_WbMsg_Cmd : wb_cmd_t
+individual sta_WbMsg_Proc : node_t
+individual sta_WbMsg_HomeProc : bool
+
+individual sta_ShWbMsg_Cmd : shwb_cmd_t
+individual sta_ShWbMsg_Proc : node_t
+individual sta_ShWbMsg_HomeProc : bool
+
+individual sta_NakcMsg_Cmd : nakc_cmd_t
+
+after init{
+    require sta_Dir_Pending = false;
+    
+    require sta_Dir_Local = false;
+    
+    require sta_Dir_Dirty = false;
+    
+    require sta_Dir_HeadVld = false;
+    
+    require sta_Dir_HeadPtr = A;
+    
+    require sta_Dir_HomeHeadPtr = true;
+    
+    require sta_Dir_ShrVld = false;
+    
+    require sta_WbMsg_Cmd = wb_none;
+    
+    require sta_WbMsg_Proc = A;
+    
+    require sta_WbMsg_HomeProc = true;
+    
+    require sta_ShWbMsg_Cmd = shwb_none;
+    
+    require sta_ShWbMsg_Proc = A;
+    
+    require sta_ShWbMsg_HomeProc = true;
+    
+    require sta_NakcMsg_Cmd = nakc_none;
+    
+    require sta_Proc_ProcCmd(B) = node_none;
+    
+    require sta_Proc_InvMarked(B) = false;
+    
+    require sta_Proc_CacheState(B) = cache_i;
+    
+    require sta_Dir_ShrSet(B) = false;
+    
+    require sta_Dir_InvSet(B) = false;
+    
+    require sta_UniMsg_Cmd(B) = uni_none;
+    
+    require sta_UniMsg_Proc(B,A) = false;
+    
+    require sta_UniMsg_HomeProc(B) = true;
+    
+    require sta_InvMsg_Cmd(B) = inv_none;
+    
+    require sta_RpMsg_Cmd(B) = rp_none;
+    
+    require sta_HomeProc_ProcCmd = node_none;
+    
+    require sta_HomeProc_InvMarked = false;
+    
+    require sta_HomeProc_CacheState = cache_i;
+    
+    require sta_Dir_HomeShrSet = false;
+    
+    require sta_Dir_HomeInvSet = false;
+    
+    require sta_HomeUniMsg_Cmd = uni_none;
+    
+    require sta_HomeUniMsg_Proc = A;
+    
+    require sta_HomeUniMsg_HomeProc = true;
+    
+    require sta_HomeInvMsg_Cmd = inv_none;
+    
+    require sta_HomeRpMsg_Cmd = rp_none;
+    
+}
+
+
+action pi_remote_get(src: node_t) = {
+    require sta_Proc_ProcCmd(src) = node_none & sta_Proc_CacheState(src) = cache_i;
+    sta_Proc_ProcCmd(src) := node_get;
+    sta_UniMsg_Cmd(src) := uni_get;
+    sta_UniMsg_HomeProc(src) := true;
+}
+
+
+
+action pi_local_get_get = {
+    require sta_HomeProc_ProcCmd = node_none & sta_HomeProc_CacheState = cache_i & sta_Dir_Pending = false & sta_Dir_Dirty = true;
+    sta_HomeProc_ProcCmd := node_get;
+    sta_Dir_Pending := true;
+    sta_HomeUniMsg_Cmd := uni_get;
+    sta_HomeUniMsg_Proc := sta_Dir_HeadPtr;
+    sta_HomeUniMsg_HomeProc := sta_Dir_HomeHeadPtr;
+}
+
+
+
+action pi_local_get_put = {
+    require sta_HomeProc_ProcCmd = node_none & sta_HomeProc_CacheState = cache_i & sta_Dir_Pending = false & sta_Dir_Dirty = false;
+    sta_Dir_Local := true;
+    sta_HomeProc_ProcCmd := node_none;
+    if (sta_HomeProc_InvMarked = true) {
+      sta_HomeProc_InvMarked := false;
+      sta_HomeProc_CacheState := cache_i;
+    }
+    else {
+      sta_HomeProc_CacheState := cache_s;
+    };
+}
+
+
+
+action pi_remote_getx(src: node_t) = {
+    require sta_Proc_ProcCmd(src) = node_none & sta_Proc_CacheState(src) = cache_i;
+    sta_Proc_ProcCmd(src) := node_getx;
+    sta_UniMsg_Cmd(src) := uni_getx;
+    sta_UniMsg_HomeProc(src) := true;
+}
+
+
+
+action pi_local_getx_getx = {
+    require sta_HomeProc_ProcCmd = node_none & (sta_HomeProc_CacheState = cache_i | sta_HomeProc_CacheState = cache_s) & sta_Dir_Pending = false & sta_Dir_Dirty = true;
+    sta_HomeProc_ProcCmd := node_getx;
+    sta_Dir_Pending := true;
+    sta_HomeUniMsg_Cmd := uni_getx;
+    sta_HomeUniMsg_Proc := sta_Dir_HeadPtr;
+    sta_HomeUniMsg_HomeProc := sta_Dir_HomeHeadPtr;
+}
+
+
+
+action pi_local_getx_putx_headvld = {
+    require sta_HomeProc_ProcCmd = node_none & (sta_HomeProc_CacheState = cache_i | sta_HomeProc_CacheState = cache_s) & sta_Dir_Pending = false & sta_Dir_Dirty = false & sta_Dir_HeadVld = true;
+    sta_Dir_Local := true;
+    sta_Dir_Dirty := true;
+    sta_Dir_Pending := true;
+    sta_Dir_HeadVld := false;
+    sta_Dir_ShrVld := false;
+    sta_Dir_ShrSet(A) := false;
+    if (forall A:node_t. sta_Dir_ShrVld = true & sta_Dir_ShrSet(A) = true | sta_Dir_HeadPtr = A & sta_Dir_HomeHeadPtr = false) {
+      sta_Dir_InvSet(A) := true;
+      sta_InvMsg_Cmd(A) := inv_inv;
+    }
+    else {
+      sta_Dir_InvSet(A) := false;
+      sta_InvMsg_Cmd(A) := inv_none;
+    };
+    sta_Dir_HomeShrSet := false;
+    sta_Dir_HomeInvSet := false;
+    sta_HomeInvMsg_Cmd := inv_none;
+    sta_HomeProc_ProcCmd := node_none;
+    sta_HomeProc_InvMarked := false;
+    sta_HomeProc_CacheState := cache_e;
+}
+
+
+
+action pi_local_getx_putx = {
+    require sta_HomeProc_ProcCmd = node_none & (sta_HomeProc_CacheState = cache_i | sta_HomeProc_CacheState = cache_s) & sta_Dir_Pending = false & sta_Dir_Dirty = false & sta_Dir_HeadVld = false;
+    sta_Dir_Local := true;
+    sta_Dir_Dirty := true;
+    sta_HomeProc_ProcCmd := node_none;
+    sta_HomeProc_InvMarked := false;
+    sta_HomeProc_CacheState := cache_e;
+}
+
+
+
+action pi_remote_putx(dst: node_t) = {
+    require sta_Proc_ProcCmd(dst) = node_none & sta_Proc_CacheState(dst) = cache_e;
+    sta_Proc_CacheState(dst) := cache_i;
+    sta_WbMsg_Cmd := wb_wb;
+    sta_WbMsg_Proc := dst;
+    sta_WbMsg_HomeProc := false;
+}
+
+
+
+action pi_local_putx = {
+    require sta_HomeProc_ProcCmd = node_none & sta_HomeProc_CacheState = cache_e;
+    if (sta_Dir_Pending = true) {
+      sta_HomeProc_CacheState := cache_i;
+      sta_Dir_Dirty := false;
+    }
+    else {
+      sta_HomeProc_CacheState := cache_i;
+      sta_Dir_Local := false;
+      sta_Dir_Dirty := false;
+    };
+}
+
+
+
+action pi_remote_replace(src: node_t) = {
+    require sta_Proc_ProcCmd(src) = node_none & sta_Proc_CacheState(src) = cache_s;
+    sta_Proc_CacheState(src) := cache_i;
+    sta_RpMsg_Cmd(src) := rp_replace;
+}
+
+
+
+action pi_local_replace = {
+    require sta_HomeProc_ProcCmd = node_none & sta_HomeProc_CacheState = cache_s;
+    sta_Dir_Local := false;
+    sta_HomeProc_CacheState := cache_i;
+}
+
+
+
+action ni_nak(dst: node_t) = {
+    require sta_UniMsg_Cmd(dst) = uni_nak;
+    sta_UniMsg_Cmd(dst) := uni_none;
+    sta_Proc_ProcCmd(dst) := node_none;
+    sta_Proc_InvMarked(dst) := false;
+}
+
+
+
+action ni_nak_home = {
+    require sta_HomeUniMsg_Cmd = uni_nak;
+    sta_HomeUniMsg_Cmd := uni_none;
+    sta_HomeProc_ProcCmd := node_none;
+    sta_HomeProc_InvMarked := false;
+}
+
+
+
+action ni_nak_clear = {
+    require sta_NakcMsg_Cmd = nakc_nakc;
+    sta_NakcMsg_Cmd := nakc_none;
+    sta_Dir_Pending := false;
+}
+
+
+
+action ni_local_get_nak(src: node_t) = {
+    require sta_UniMsg_Cmd(src) = uni_get & sta_UniMsg_HomeProc(src) = true & sta_RpMsg_Cmd(src) ~= rp_replace & (sta_Dir_Pending = true | sta_Dir_Dirty = true & sta_Dir_Local = true & sta_HomeProc_CacheState ~= cache_e | sta_Dir_Dirty = true & sta_Dir_Local = false & sta_Dir_HeadPtr = src & sta_Dir_HomeHeadPtr = false);
+    sta_UniMsg_Cmd(src) := uni_nak;
+}
+
+
+
+action ni_local_get_get(src: node_t) = {
+    require sta_UniMsg_Cmd(src) = uni_get & sta_UniMsg_HomeProc(src) = true & sta_RpMsg_Cmd(src) ~= rp_replace & sta_Dir_Pending = false & sta_Dir_Dirty = true & sta_Dir_Local = false & (sta_Dir_HeadPtr ~= src | sta_Dir_HomeHeadPtr = true);
+    sta_Dir_Pending := true;
+    sta_UniMsg_Cmd(src) := uni_get;
+    sta_UniMsg_Proc(src,sta_Dir_HeadPtr) := true;
+    sta_UniMsg_HomeProc(src) := sta_Dir_HomeHeadPtr;
+}
+
+
+
+action ni_local_get_put_head(src: node_t) = {
+    require sta_UniMsg_Cmd(src) = uni_get & sta_UniMsg_HomeProc(src) = true & sta_RpMsg_Cmd(src) ~= rp_replace & sta_Dir_Pending = false & sta_Dir_Dirty = false & sta_Dir_HeadVld = true;
+    sta_Dir_ShrVld := true;
+    sta_Dir_ShrSet(src) := true;
+    if (forall A:node_t. A = src) {
+      sta_Dir_InvSet(A) := true;
+    }
+    else {
+      sta_Dir_InvSet(A) := sta_Dir_ShrSet(A);
+    };
+    sta_Dir_HomeInvSet := sta_Dir_HomeShrSet;
+    sta_UniMsg_Cmd(src) := uni_put;
+}
+
+
+
+action ni_local_get_put(src: node_t) = {
+    require sta_UniMsg_Cmd(src) = uni_get & sta_UniMsg_HomeProc(src) = true & sta_RpMsg_Cmd(src) ~= rp_replace & sta_Dir_Pending = false & sta_Dir_Dirty = false & sta_Dir_HeadVld = false;
+    sta_Dir_HeadVld := true;
+    sta_Dir_HeadPtr := src;
+    sta_Dir_HomeHeadPtr := false;
+    sta_UniMsg_Cmd(src) := uni_put;
+}
+
+
+
+action ni_local_get_put_dirty(src: node_t) = {
+    require sta_UniMsg_Cmd(src) = uni_get & sta_UniMsg_HomeProc(src) = true & sta_RpMsg_Cmd(src) ~= rp_replace & sta_Dir_Pending = false & sta_Dir_Dirty = true & sta_Dir_Local = true & sta_HomeProc_CacheState = cache_e;
+    sta_Dir_Dirty := false;
+    sta_Dir_HeadVld := true;
+    sta_Dir_HeadPtr := src;
+    sta_Dir_HomeHeadPtr := false;
+    sta_HomeProc_CacheState := cache_s;
+    sta_UniMsg_Cmd(src) := uni_put;
+}
+
+
+
+action ni_remote_get_nak(src: node_t, dst: node_t) = {
+    require src ~= dst & sta_UniMsg_Cmd(src) = uni_get & sta_UniMsg_Proc(src,dst) = true & sta_UniMsg_HomeProc(src) = false & sta_Proc_CacheState(dst) ~= cache_e;
+    sta_UniMsg_Cmd(src) := uni_nak;
+    sta_NakcMsg_Cmd := nakc_nakc;
+}
+
+
+
+action ni_remote_get_nak_home(dst: node_t) = {
+    require sta_HomeUniMsg_Cmd = uni_get & sta_HomeUniMsg_Proc = dst & sta_HomeUniMsg_HomeProc = false & sta_Proc_CacheState(dst) ~= cache_e;
+    sta_HomeUniMsg_Cmd := uni_nak;
+    sta_NakcMsg_Cmd := nakc_nakc;
+}
+
+
+
+action ni_remote_get_put(src: node_t, dst: node_t) = {
+    require src ~= dst & sta_UniMsg_Cmd(src) = uni_get & sta_UniMsg_Proc(src,dst) = true & sta_UniMsg_HomeProc(src) = false & sta_Proc_CacheState(dst) = cache_e;
+    sta_Proc_CacheState(dst) := cache_s;
+    sta_UniMsg_Cmd(src) := uni_put;
+    sta_ShWbMsg_Cmd := shwb_shwb;
+    sta_ShWbMsg_Proc := src;
+    sta_ShWbMsg_HomeProc := false;
+}
+
+
+
+action ni_remote_get_put_home(dst: node_t) = {
+    require sta_HomeUniMsg_Cmd = uni_get & sta_HomeUniMsg_Proc = dst & sta_HomeUniMsg_HomeProc = false & sta_Proc_CacheState(dst) = cache_e;
+    sta_Proc_CacheState(dst) := cache_s;
+    sta_HomeUniMsg_Cmd := uni_put;
+}
+
+
+
+action ni_local_getx_nak(src: node_t) = {
+    require sta_UniMsg_Cmd(src) = uni_getx & sta_UniMsg_HomeProc(src) = true & (sta_Dir_Pending = true | sta_Dir_Dirty = true & sta_Dir_Local = true & sta_HomeProc_CacheState ~= cache_e | sta_Dir_Dirty = true & sta_Dir_Local = false & sta_Dir_HeadPtr = src & sta_Dir_HomeHeadPtr = false);
+    sta_UniMsg_Cmd(src) := uni_nak;
+}
+
+
+
+action ni_local_getx_getx(src: node_t) = {
+    require sta_UniMsg_Cmd(src) = uni_getx & sta_UniMsg_HomeProc(src) = true & sta_Dir_Pending = false & sta_Dir_Dirty = true & sta_Dir_Local = false & (sta_Dir_HeadPtr ~= src | sta_Dir_HomeHeadPtr = true);
+    sta_Dir_Pending := true;
+    sta_UniMsg_Cmd(src) := uni_getx;
+    sta_UniMsg_Proc(src,sta_Dir_HeadPtr) := true;
+    sta_UniMsg_HomeProc(src) := sta_Dir_HomeHeadPtr;
+}
+
+
+
+action ni_local_getx_putx_1(src: node_t) = {
+    require sta_UniMsg_Cmd(src) = uni_getx & sta_UniMsg_HomeProc(src) = true & sta_Dir_Pending = false & sta_Dir_Dirty = false & sta_Dir_HeadVld = false & sta_Dir_Local = true & sta_HomeProc_ProcCmd = node_get;
+    sta_Dir_Local := false;
+    sta_Dir_Dirty := true;
+    sta_Dir_HeadVld := true;
+    sta_Dir_HeadPtr := src;
+    sta_Dir_HomeHeadPtr := false;
+    sta_Dir_ShrVld := false;
+    sta_Dir_ShrSet(A) := false;
+    sta_Dir_InvSet(A) := false;
+    sta_Dir_HomeShrSet := false;
+    sta_Dir_HomeInvSet := false;
+    sta_UniMsg_Cmd(src) := uni_putx;
+    sta_HomeProc_CacheState := cache_i;
+    sta_HomeProc_InvMarked := true;
+}
+
+
+
+action ni_local_getx_putx_2(src: node_t) = {
+    require sta_UniMsg_Cmd(src) = uni_getx & sta_UniMsg_HomeProc(src) = true & sta_Dir_Pending = false & sta_Dir_Dirty = false & sta_Dir_HeadVld = false & sta_Dir_Local = true & sta_HomeProc_ProcCmd ~= node_get;
+    sta_Dir_Local := false;
+    sta_Dir_Dirty := true;
+    sta_Dir_HeadVld := true;
+    sta_Dir_HeadPtr := src;
+    sta_Dir_HomeHeadPtr := false;
+    sta_Dir_ShrVld := false;
+    sta_Dir_ShrSet(A) := false;
+    sta_Dir_InvSet(A) := false;
+    sta_Dir_HomeShrSet := false;
+    sta_Dir_HomeInvSet := false;
+    sta_UniMsg_Cmd(src) := uni_putx;
+    sta_HomeProc_CacheState := cache_i;
+}
+
+
+
+action ni_local_getx_putx_3(src: node_t) = {
+    require sta_UniMsg_Cmd(src) = uni_getx & sta_UniMsg_HomeProc(src) = true & sta_Dir_Pending = false & sta_Dir_Dirty = false & sta_Dir_HeadVld = false & sta_Dir_Local = false;
+    sta_Dir_Local := false;
+    sta_Dir_Dirty := true;
+    sta_Dir_HeadVld := true;
+    sta_Dir_HeadPtr := src;
+    sta_Dir_HomeHeadPtr := false;
+    sta_Dir_ShrVld := false;
+    sta_Dir_ShrSet(A) := false;
+    sta_Dir_InvSet(A) := false;
+    sta_Dir_HomeShrSet := false;
+    sta_Dir_HomeInvSet := false;
+    sta_UniMsg_Cmd(src) := uni_putx;
+    sta_HomeProc_CacheState := cache_i;
+}
+
+
+
+action ni_local_getx_putx_4(src: node_t) = {
+    require sta_UniMsg_Cmd(src) = uni_getx & sta_UniMsg_HomeProc(src) = true & sta_Dir_Pending = false & sta_Dir_Dirty = false & sta_Dir_HeadPtr = src & sta_Dir_HomeHeadPtr = false & sta_Dir_HomeShrSet = false & ((A ~= src) ->   sta_Dir_ShrSet(A) = false) & sta_Dir_Local = true & sta_HomeProc_ProcCmd = node_get;
+    sta_Dir_Local := false;
+    sta_Dir_Dirty := true;
+    sta_Dir_HeadVld := true;
+    sta_Dir_HeadPtr := src;
+    sta_Dir_HomeHeadPtr := false;
+    sta_Dir_ShrVld := false;
+    sta_Dir_ShrSet(A) := false;
+    sta_Dir_InvSet(A) := false;
+    sta_Dir_HomeShrSet := false;
+    sta_Dir_HomeInvSet := false;
+    sta_UniMsg_Cmd(src) := uni_putx;
+    sta_HomeProc_CacheState := cache_i;
+    sta_HomeProc_InvMarked := true;
+}
+
+
+
+action ni_local_getx_putx_5(src: node_t) = {
+    require sta_UniMsg_Cmd(src) = uni_getx & sta_UniMsg_HomeProc(src) = true & sta_Dir_Pending = false & sta_Dir_Dirty = false & sta_Dir_HeadPtr = src & sta_Dir_HomeHeadPtr = false & sta_Dir_HomeShrSet = false & ((A ~= src) ->   sta_Dir_ShrSet(A) = false) & sta_Dir_Local = true & sta_HomeProc_ProcCmd ~= node_get;
+    sta_Dir_Local := false;
+    sta_Dir_Dirty := true;
+    sta_Dir_HeadVld := true;
+    sta_Dir_HeadPtr := src;
+    sta_Dir_HomeHeadPtr := false;
+    sta_Dir_ShrVld := false;
+    sta_Dir_ShrSet(A) := false;
+    sta_Dir_InvSet(A) := false;
+    sta_Dir_HomeShrSet := false;
+    sta_Dir_HomeInvSet := false;
+    sta_UniMsg_Cmd(src) := uni_putx;
+    sta_HomeProc_CacheState := cache_i;
+}
+
+
+
+action ni_local_getx_putx_6(src: node_t) = {
+    require sta_UniMsg_Cmd(src) = uni_getx & sta_UniMsg_HomeProc(src) = true & sta_Dir_Pending = false & sta_Dir_Dirty = false & sta_Dir_HeadPtr = src & sta_Dir_HomeHeadPtr = false & sta_Dir_HomeShrSet = false & ((A ~= src) ->   sta_Dir_ShrSet(A) = false) & sta_Dir_Local = false;
+    sta_Dir_Local := false;
+    sta_Dir_Dirty := true;
+    sta_Dir_HeadVld := true;
+    sta_Dir_HeadPtr := src;
+    sta_Dir_HomeHeadPtr := false;
+    sta_Dir_ShrVld := false;
+    sta_Dir_ShrSet(A) := false;
+    sta_Dir_InvSet(A) := false;
+    sta_Dir_HomeShrSet := false;
+    sta_Dir_HomeInvSet := false;
+    sta_UniMsg_Cmd(src) := uni_putx;
+    sta_HomeProc_CacheState := cache_i;
+}
+
+
+
+action ni_local_getx_putx_7(src: node_t) = {
+    require sta_UniMsg_Cmd(src) = uni_getx & sta_UniMsg_HomeProc(src) = true & sta_Dir_Pending = false & sta_Dir_Dirty = false & sta_Dir_HeadVld = true & (sta_Dir_HeadPtr ~= src | sta_Dir_HomeHeadPtr = true) & sta_Dir_Local = true & sta_HomeProc_ProcCmd ~= node_get;
+    sta_Dir_Pending := true;
+    sta_Dir_Local := false;
+    sta_Dir_Dirty := true;
+    sta_Dir_HeadVld := true;
+    sta_Dir_HeadPtr := src;
+    sta_Dir_HomeHeadPtr := false;
+    sta_Dir_ShrVld := false;
+    sta_Dir_ShrSet(A) := false;
+    if (forall A:node_t. A ~= src & (sta_Dir_ShrVld = true & sta_Dir_ShrSet(A) = true | sta_Dir_HeadVld = true & sta_Dir_HeadPtr = A & sta_Dir_HomeHeadPtr = false)) {
+      sta_Dir_InvSet(A) := true;
+      sta_InvMsg_Cmd(A) := inv_inv;
+    }
+    else {
+      sta_Dir_InvSet(A) := false;
+      sta_InvMsg_Cmd(A) := inv_none;
+    };
+    sta_Dir_HomeShrSet := false;
+    sta_Dir_HomeInvSet := false;
+    sta_HomeInvMsg_Cmd := inv_none;
+    sta_UniMsg_Cmd(src) := uni_putx;
+    sta_HomeProc_CacheState := cache_i;
+}
+
+
+
+action ni_local_getx_putx_7_node_get(src: node_t) = {
+    require sta_UniMsg_Cmd(src) = uni_getx & sta_UniMsg_HomeProc(src) = true & sta_Dir_Pending = false & sta_Dir_Dirty = false & sta_Dir_HeadVld = true & (sta_Dir_HeadPtr ~= src | sta_Dir_HomeHeadPtr = true) & sta_Dir_Local = true & sta_HomeProc_ProcCmd = node_get;
+    sta_Dir_Pending := true;
+    sta_Dir_Local := false;
+    sta_Dir_Dirty := true;
+    sta_Dir_HeadVld := true;
+    sta_Dir_HeadPtr := src;
+    sta_Dir_HomeHeadPtr := false;
+    sta_Dir_ShrVld := false;
+    sta_Dir_ShrSet(A) := false;
+    if (forall A:node_t. A ~= src & (sta_Dir_ShrVld = true & sta_Dir_ShrSet(A) = true | sta_Dir_HeadVld = true & sta_Dir_HeadPtr = A & sta_Dir_HomeHeadPtr = false)) {
+      sta_Dir_InvSet(A) := true;
+      sta_InvMsg_Cmd(A) := inv_inv;
+    }
+    else {
+      sta_Dir_InvSet(A) := false;
+      sta_InvMsg_Cmd(A) := inv_none;
+    };
+    sta_Dir_HomeShrSet := false;
+    sta_Dir_HomeInvSet := false;
+    sta_HomeInvMsg_Cmd := inv_none;
+    sta_UniMsg_Cmd(src) := uni_putx;
+    sta_HomeProc_CacheState := cache_i;
+    sta_HomeProc_InvMarked := true;
+}
+
+
+
+action ni_local_getx_putx_8_home(src: node_t) = {
+    require sta_UniMsg_Cmd(src) = uni_getx & sta_UniMsg_HomeProc(src) = true & sta_Dir_Pending = false & sta_Dir_Dirty = false & sta_Dir_HeadVld = true & sta_Dir_HeadPtr = src & sta_Dir_HomeHeadPtr = false & sta_Dir_HomeShrSet = true & sta_Dir_Local = true & sta_HomeProc_ProcCmd ~= node_get;
+    sta_Dir_Pending := true;
+    sta_Dir_Local := false;
+    sta_Dir_Dirty := true;
+    sta_Dir_HeadVld := true;
+    sta_Dir_HeadPtr := src;
+    sta_Dir_HomeHeadPtr := false;
+    sta_Dir_ShrVld := false;
+    sta_Dir_ShrSet(A) := false;
+    if (forall A:node_t. A ~= src & (sta_Dir_ShrVld = true & sta_Dir_ShrSet(A) = true | sta_Dir_HeadVld = true & sta_Dir_HeadPtr = A & sta_Dir_HomeHeadPtr = false)) {
+      sta_Dir_InvSet(A) := true;
+      sta_InvMsg_Cmd(A) := inv_inv;
+    }
+    else {
+      sta_Dir_InvSet(A) := false;
+      sta_InvMsg_Cmd(A) := inv_none;
+    };
+    sta_Dir_HomeShrSet := false;
+    sta_Dir_HomeInvSet := false;
+    sta_HomeInvMsg_Cmd := inv_none;
+    sta_UniMsg_Cmd(src) := uni_putx;
+    sta_HomeProc_CacheState := cache_i;
+}
+
+
+
+action ni_local_getx_putx_8_home_node_get(src: node_t) = {
+    require sta_UniMsg_Cmd(src) = uni_getx & sta_UniMsg_HomeProc(src) = true & sta_Dir_Pending = false & sta_Dir_Dirty = false & sta_Dir_HeadVld = true & sta_Dir_HeadPtr = src & sta_Dir_HomeHeadPtr = false & sta_Dir_HomeShrSet = true & sta_Dir_Local = true & sta_HomeProc_ProcCmd = node_get;
+    sta_Dir_Pending := true;
+    sta_Dir_Local := false;
+    sta_Dir_Dirty := true;
+    sta_Dir_HeadVld := true;
+    sta_Dir_HeadPtr := src;
+    sta_Dir_HomeHeadPtr := false;
+    sta_Dir_ShrVld := false;
+    sta_Dir_ShrSet(A) := false;
+    if (forall A:node_t. A ~= src & (sta_Dir_ShrVld = true & sta_Dir_ShrSet(A) = true | sta_Dir_HeadVld = true & sta_Dir_HeadPtr = A & sta_Dir_HomeHeadPtr = false)) {
+      sta_Dir_InvSet(A) := true;
+      sta_InvMsg_Cmd(A) := inv_inv;
+    }
+    else {
+      sta_Dir_InvSet(A) := false;
+      sta_InvMsg_Cmd(A) := inv_none;
+    };
+    sta_Dir_HomeShrSet := false;
+    sta_Dir_HomeInvSet := false;
+    sta_HomeInvMsg_Cmd := inv_none;
+    sta_UniMsg_Cmd(src) := uni_putx;
+    sta_HomeProc_CacheState := cache_i;
+    sta_HomeProc_InvMarked := true;
+}
+
+
+
+action ni_local_getx_putx_8(src: node_t, pp: node_t) = {
+    require sta_UniMsg_Cmd(src) = uni_getx & sta_UniMsg_HomeProc(src) = true & sta_Dir_Pending = false & sta_Dir_Dirty = false & sta_Dir_HeadVld = true & sta_Dir_HeadPtr = src & sta_Dir_HomeHeadPtr = false & sta_Dir_ShrSet(pp) = true & sta_Dir_Local = true & sta_HomeProc_ProcCmd ~= node_get;
+    sta_Dir_Pending := true;
+    sta_Dir_Local := false;
+    sta_Dir_Dirty := true;
+    sta_Dir_HeadVld := true;
+    sta_Dir_HeadPtr := src;
+    sta_Dir_HomeHeadPtr := false;
+    sta_Dir_ShrVld := false;
+    sta_Dir_ShrSet(A) := false;
+    if (forall A:node_t. A ~= src & (sta_Dir_ShrVld = true & sta_Dir_ShrSet(A) = true | sta_Dir_HeadVld = true & sta_Dir_HeadPtr = A & sta_Dir_HomeHeadPtr = false)) {
+      sta_Dir_InvSet(A) := true;
+      sta_InvMsg_Cmd(A) := inv_inv;
+    }
+    else {
+      sta_Dir_InvSet(A) := false;
+      sta_InvMsg_Cmd(A) := inv_none;
+    };
+    sta_Dir_HomeShrSet := false;
+    sta_Dir_HomeInvSet := false;
+    sta_HomeInvMsg_Cmd := inv_none;
+    sta_UniMsg_Cmd(src) := uni_putx;
+    sta_HomeProc_CacheState := cache_i;
+}
+
+
+
+action ni_local_getx_putx_8_node_get(src: node_t, pp: node_t) = {
+    require sta_UniMsg_Cmd(src) = uni_getx & sta_UniMsg_HomeProc(src) = true & sta_Dir_Pending = false & sta_Dir_Dirty = false & sta_Dir_HeadVld = true & sta_Dir_HeadPtr = src & sta_Dir_HomeHeadPtr = false & sta_Dir_ShrSet(pp) = true & sta_Dir_Local = true & sta_HomeProc_ProcCmd = node_get;
+    sta_Dir_Pending := true;
+    sta_Dir_Local := false;
+    sta_Dir_Dirty := true;
+    sta_Dir_HeadVld := true;
+    sta_Dir_HeadPtr := src;
+    sta_Dir_HomeHeadPtr := false;
+    sta_Dir_ShrVld := false;
+    sta_Dir_ShrSet(A) := false;
+    if (forall A:node_t. A ~= src & (sta_Dir_ShrVld = true & sta_Dir_ShrSet(A) = true | sta_Dir_HeadVld = true & sta_Dir_HeadPtr = A & sta_Dir_HomeHeadPtr = false)) {
+      sta_Dir_InvSet(A) := true;
+      sta_InvMsg_Cmd(A) := inv_inv;
+    }
+    else {
+      sta_Dir_InvSet(A) := false;
+      sta_InvMsg_Cmd(A) := inv_none;
+    };
+    sta_Dir_HomeShrSet := false;
+    sta_Dir_HomeInvSet := false;
+    sta_HomeInvMsg_Cmd := inv_none;
+    sta_UniMsg_Cmd(src) := uni_putx;
+    sta_HomeProc_CacheState := cache_i;
+    sta_HomeProc_InvMarked := true;
+}
+
+
+
+action ni_local_getx_putx_9(src: node_t) = {
+    require sta_UniMsg_Cmd(src) = uni_getx & sta_UniMsg_HomeProc(src) = true & sta_Dir_Pending = false & sta_Dir_Dirty = false & sta_Dir_HeadVld = true & (sta_Dir_HeadPtr ~= src | sta_Dir_HomeHeadPtr = true) & sta_Dir_Local = false;
+    sta_Dir_Pending := true;
+    sta_Dir_Local := false;
+    sta_Dir_Dirty := true;
+    sta_Dir_HeadVld := true;
+    sta_Dir_HeadPtr := src;
+    sta_Dir_HomeHeadPtr := false;
+    sta_Dir_ShrVld := false;
+    sta_Dir_ShrSet(A) := false;
+    if (forall A:node_t. A ~= src & (sta_Dir_ShrVld = true & sta_Dir_ShrSet(A) = true | sta_Dir_HeadVld = true & sta_Dir_HeadPtr = A & sta_Dir_HomeHeadPtr = false)) {
+      sta_Dir_InvSet(A) := true;
+      sta_InvMsg_Cmd(A) := inv_inv;
+    }
+    else {
+      sta_Dir_InvSet(A) := false;
+      sta_InvMsg_Cmd(A) := inv_none;
+    };
+    sta_Dir_HomeShrSet := false;
+    sta_Dir_HomeInvSet := false;
+    sta_HomeInvMsg_Cmd := inv_none;
+    sta_UniMsg_Cmd(src) := uni_putx;
+}
+
+
+
+action ni_local_getx_putx_10_home(src: node_t) = {
+    require sta_UniMsg_Cmd(src) = uni_getx & sta_UniMsg_HomeProc(src) = true & sta_Dir_Pending = false & sta_Dir_Dirty = false & sta_Dir_HeadVld = true & sta_Dir_HeadPtr = src & sta_Dir_HomeHeadPtr = false & sta_Dir_HomeShrSet = true & sta_Dir_Local = false;
+    sta_Dir_Pending := true;
+    sta_Dir_Local := false;
+    sta_Dir_Dirty := true;
+    sta_Dir_HeadVld := true;
+    sta_Dir_HeadPtr := src;
+    sta_Dir_HomeHeadPtr := false;
+    sta_Dir_ShrVld := false;
+    sta_Dir_ShrSet(A) := false;
+    if (forall A:node_t. A ~= src & (sta_Dir_ShrVld = true & sta_Dir_ShrSet(A) = true | sta_Dir_HeadVld = true & sta_Dir_HeadPtr = A & sta_Dir_HomeHeadPtr = false)) {
+      sta_Dir_InvSet(A) := true;
+      sta_InvMsg_Cmd(A) := inv_inv;
+    }
+    else {
+      sta_Dir_InvSet(A) := false;
+      sta_InvMsg_Cmd(A) := inv_none;
+    };
+    sta_Dir_HomeShrSet := false;
+    sta_Dir_HomeInvSet := false;
+    sta_HomeInvMsg_Cmd := inv_none;
+    sta_UniMsg_Cmd(src) := uni_putx;
+}
+
+
+
+action ni_local_getx_putx_10(src: node_t, pp: node_t) = {
+    require sta_UniMsg_Cmd(src) = uni_getx & sta_UniMsg_HomeProc(src) = true & sta_Dir_Pending = false & sta_Dir_Dirty = false & sta_Dir_HeadVld = true & sta_Dir_HeadPtr = src & sta_Dir_HomeHeadPtr = false & sta_Dir_ShrSet(pp) = true & sta_Dir_Local = false;
+    sta_Dir_Pending := true;
+    sta_Dir_Local := false;
+    sta_Dir_Dirty := true;
+    sta_Dir_HeadVld := true;
+    sta_Dir_HeadPtr := src;
+    sta_Dir_HomeHeadPtr := false;
+    sta_Dir_ShrVld := false;
+    sta_Dir_ShrSet(A) := false;
+    if (forall A:node_t. A ~= src & (sta_Dir_ShrVld = true & sta_Dir_ShrSet(A) = true | sta_Dir_HeadVld = true & sta_Dir_HeadPtr = A & sta_Dir_HomeHeadPtr = false)) {
+      sta_Dir_InvSet(A) := true;
+      sta_InvMsg_Cmd(A) := inv_inv;
+    }
+    else {
+      sta_Dir_InvSet(A) := false;
+      sta_InvMsg_Cmd(A) := inv_none;
+    };
+    sta_Dir_HomeShrSet := false;
+    sta_Dir_HomeInvSet := false;
+    sta_HomeInvMsg_Cmd := inv_none;
+    sta_UniMsg_Cmd(src) := uni_putx;
+}
+
+
+
+action ni_local_getx_putx_11(src: node_t) = {
+    require sta_UniMsg_Cmd(src) = uni_getx & sta_UniMsg_HomeProc(src) = true & sta_Dir_Pending = false & sta_Dir_Dirty = true & sta_Dir_Local = true & sta_HomeProc_CacheState = cache_e;
+    sta_Dir_Local := false;
+    sta_Dir_Dirty := true;
+    sta_Dir_HeadVld := true;
+    sta_Dir_HeadPtr := src;
+    sta_Dir_HomeHeadPtr := false;
+    sta_Dir_ShrVld := false;
+    sta_Dir_ShrSet(A) := false;
+    sta_Dir_InvSet(A) := false;
+    sta_Dir_HomeShrSet := false;
+    sta_Dir_HomeInvSet := false;
+    sta_UniMsg_Cmd(src) := uni_putx;
+    sta_HomeProc_CacheState := cache_i;
+}
+
+
+
+action ni_remote_getx_nak(src: node_t, dst: node_t) = {
+    require src ~= dst & sta_UniMsg_Cmd(src) = uni_getx & sta_UniMsg_Proc(src,dst) = true & sta_UniMsg_HomeProc(src) = false & sta_Proc_CacheState(dst) ~= cache_e;
+    sta_UniMsg_Cmd(src) := uni_nak;
+    sta_NakcMsg_Cmd := nakc_nakc;
+}
+
+
+
+action ni_remote_getx_nak_home(dst: node_t) = {
+    require sta_HomeUniMsg_Cmd = uni_getx & sta_HomeUniMsg_Proc = dst & sta_HomeUniMsg_HomeProc = false & sta_Proc_CacheState(dst) ~= cache_e;
+    sta_HomeUniMsg_Cmd := uni_nak;
+    sta_NakcMsg_Cmd := nakc_nakc;
+}
+
+
+
+action ni_remote_getx_putx(src: node_t, dst: node_t) = {
+    require src ~= dst & sta_UniMsg_Cmd(src) = uni_getx & sta_UniMsg_Proc(src,dst) = true & sta_UniMsg_HomeProc(src) = false & sta_Proc_CacheState(dst) = cache_e;
+    sta_Proc_CacheState(dst) := cache_i;
+    sta_UniMsg_Cmd(src) := uni_putx;
+    sta_ShWbMsg_Cmd := shwb_fack;
+    sta_ShWbMsg_Proc := src;
+    sta_ShWbMsg_HomeProc := false;
+}
+
+
+
+action ni_remote_getx_putx_home(dst: node_t) = {
+    require sta_HomeUniMsg_Cmd = uni_getx & sta_HomeUniMsg_Proc = dst & sta_HomeUniMsg_HomeProc = false & sta_Proc_CacheState(dst) = cache_e;
+    sta_Proc_CacheState(dst) := cache_i;
+    sta_HomeUniMsg_Cmd := uni_putx;
+}
+
+
+
+action ni_local_put = {
+    require sta_HomeUniMsg_Cmd = uni_put;
+    sta_HomeUniMsg_Cmd := uni_none;
+    sta_Dir_Pending := false;
+    sta_Dir_Dirty := false;
+    sta_Dir_Local := true;
+    sta_HomeProc_ProcCmd := node_none;
+    if (sta_HomeProc_InvMarked = true) {
+      sta_HomeProc_InvMarked := false;
+      sta_HomeProc_CacheState := cache_i;
+    }
+    else {
+      sta_HomeProc_CacheState := cache_s;
+    };
+}
+
+
+
+action ni_remote_put(dst: node_t) = {
+    require sta_UniMsg_Cmd(dst) = uni_put;
+    sta_UniMsg_Cmd(dst) := uni_none;
+    sta_Proc_ProcCmd(dst) := node_none;
+    if (sta_Proc_InvMarked(dst) = true) {
+      sta_Proc_InvMarked(dst) := false;
+      sta_Proc_CacheState(dst) := cache_i;
+    }
+    else {
+      sta_Proc_CacheState(dst) := cache_s;
+    };
+}
+
+
+
+action ni_local_putxacksdone = {
+    require sta_HomeUniMsg_Cmd = uni_putx;
+    sta_HomeUniMsg_Cmd := uni_none;
+    sta_Dir_Pending := false;
+    sta_Dir_Local := true;
+    sta_Dir_HeadVld := false;
+    sta_HomeProc_ProcCmd := node_none;
+    sta_HomeProc_InvMarked := false;
+    sta_HomeProc_CacheState := cache_e;
+}
+
+
+
+action ni_remote_putx(dst: node_t) = {
+    require sta_UniMsg_Cmd(dst) = uni_putx & sta_Proc_ProcCmd(dst) = node_getx;
+    sta_UniMsg_Cmd(dst) := uni_none;
+    sta_Proc_ProcCmd(dst) := node_none;
+    sta_Proc_InvMarked(dst) := false;
+    sta_Proc_CacheState(dst) := cache_e;
+}
+
+
+
+action ni_inv(dst: node_t) = {
+    require sta_InvMsg_Cmd(dst) = inv_inv;
+    sta_InvMsg_Cmd(dst) := inv_invack;
+    sta_Proc_CacheState(dst) := cache_i;
+    if (sta_Proc_ProcCmd(dst) = node_get) {
+      sta_Proc_InvMarked(dst) := true;
+    };
+}
+
+
+
+action ni_invack_exists_home(src: node_t) = {
+    require sta_InvMsg_Cmd(src) = inv_invack & sta_Dir_Pending = true & sta_Dir_InvSet(src) = true & sta_Dir_HomeInvSet = true;
+    sta_InvMsg_Cmd(src) := inv_none;
+    sta_Dir_InvSet(src) := false;
+}
+
+
+
+action ni_invack_exists(src: node_t, pp: node_t) = {
+    require sta_InvMsg_Cmd(src) = inv_invack & sta_Dir_Pending = true & sta_Dir_InvSet(src) = true & pp ~= src & sta_Dir_InvSet(pp) = true;
+    sta_InvMsg_Cmd(src) := inv_none;
+    sta_Dir_InvSet(src) := false;
+}
+
+
+
+action ni_invack_1(src: node_t) = {
+    require sta_InvMsg_Cmd(src) = inv_invack & sta_Dir_Pending = true & sta_Dir_InvSet(src) = true & sta_Dir_Local = true & sta_Dir_Dirty = false & sta_Dir_HomeInvSet = false & (A = src | sta_Dir_InvSet(A) = false);
+    sta_InvMsg_Cmd(src) := inv_none;
+    sta_Dir_InvSet(src) := false;
+    sta_Dir_Pending := false;
+    sta_Dir_Local := false;
+}
+
+
+
+action ni_invack_2(src: node_t) = {
+    require sta_InvMsg_Cmd(src) = inv_invack & sta_Dir_Pending = true & sta_Dir_InvSet(src) = true & sta_Dir_Local = false & sta_Dir_HomeInvSet = false & (A = src | sta_Dir_InvSet(A) = false);
+    sta_InvMsg_Cmd(src) := inv_none;
+    sta_Dir_InvSet(src) := false;
+    sta_Dir_Pending := false;
+}
+
+
+
+action ni_invack_3(src: node_t) = {
+    require sta_InvMsg_Cmd(src) = inv_invack & sta_Dir_Pending = true & sta_Dir_InvSet(src) = true & sta_Dir_Dirty = true & sta_Dir_HomeInvSet = false & (A = src | sta_Dir_InvSet(A) = false);
+    sta_InvMsg_Cmd(src) := inv_none;
+    sta_Dir_InvSet(src) := false;
+    sta_Dir_Pending := false;
+}
+
+
+
+action ni_wb = {
+    require sta_WbMsg_Cmd = wb_wb;
+    sta_WbMsg_Cmd := wb_none;
+    sta_Dir_Dirty := false;
+    sta_Dir_HeadVld := false;
+}
+
+
+
+action ni_fack = {
+    require sta_ShWbMsg_Cmd = shwb_fack;
+    sta_ShWbMsg_Cmd := shwb_none;
+    sta_Dir_Pending := false;
+    if (sta_Dir_Dirty = true) {
+      sta_Dir_HeadPtr := sta_ShWbMsg_Proc;
+      sta_Dir_HomeHeadPtr := sta_ShWbMsg_HomeProc;
+    };
+}
+
+
+
+action ni_shwb = {
+    require sta_ShWbMsg_Cmd = shwb_shwb;
+    sta_ShWbMsg_Cmd := shwb_none;
+    sta_Dir_Pending := false;
+    sta_Dir_Dirty := false;
+    sta_Dir_ShrVld := true;
+    if (forall A:node_t. sta_ShWbMsg_Proc = A & sta_ShWbMsg_HomeProc = false | sta_Dir_ShrSet(A) = true) {
+      sta_Dir_ShrSet(A) := true;
+      sta_Dir_InvSet(A) := true;
+    }
+    else {
+      sta_Dir_ShrSet(A) := false;
+      sta_Dir_InvSet(A) := false;
+    };
+    if (sta_ShWbMsg_HomeProc = true | sta_Dir_HomeShrSet = true) {
+      sta_Dir_HomeShrSet := true;
+      sta_Dir_HomeInvSet := true;
+    }
+    else {
+      sta_Dir_HomeShrSet := false;
+      sta_Dir_HomeInvSet := false;
+    };
+}
+
+
+
+action ni_replace(src: node_t) = {
+    require sta_RpMsg_Cmd(src) = rp_replace;
+    sta_RpMsg_Cmd(src) := rp_none;
+    if (sta_Dir_ShrVld = true) {
+      sta_Dir_ShrSet(src) := false;
+      sta_Dir_InvSet(src) := false;
+    };
+}
+
+
+
+action ni_replace_home = {
+    require sta_HomeRpMsg_Cmd = rp_replace;
+    sta_HomeRpMsg_Cmd := rp_none;
+    if (sta_Dir_ShrVld = true) {
+      sta_Dir_HomeShrSet := false;
+      sta_Dir_HomeInvSet := false;
+    };
+}
+
+
+
+export pi_remote_get
+export pi_local_get_get
+export pi_local_get_put
+export pi_remote_getx
+export pi_local_getx_getx
+export pi_local_getx_putx_headvld
+export pi_local_getx_putx
+export pi_remote_putx
+export pi_local_putx
+export pi_remote_replace
+export pi_local_replace
+export ni_nak
+export ni_nak_home
+export ni_nak_clear
+export ni_local_get_nak
+export ni_local_get_get
+export ni_local_get_put_head
+export ni_local_get_put
+export ni_local_get_put_dirty
+export ni_remote_get_nak
+export ni_remote_get_nak_home
+export ni_remote_get_put
+export ni_remote_get_put_home
+export ni_local_getx_nak
+export ni_local_getx_getx
+export ni_local_getx_putx_1
+export ni_local_getx_putx_2
+export ni_local_getx_putx_3
+export ni_local_getx_putx_4
+export ni_local_getx_putx_5
+export ni_local_getx_putx_6
+export ni_local_getx_putx_7
+export ni_local_getx_putx_7_node_get
+export ni_local_getx_putx_8_home
+export ni_local_getx_putx_8_home_node_get
+export ni_local_getx_putx_8
+export ni_local_getx_putx_8_node_get
+export ni_local_getx_putx_9
+export ni_local_getx_putx_10_home
+export ni_local_getx_putx_10
+export ni_local_getx_putx_11
+export ni_remote_getx_nak
+export ni_remote_getx_nak_home
+export ni_remote_getx_putx
+export ni_remote_getx_putx_home
+export ni_local_put
+export ni_remote_put
+export ni_local_putxacksdone
+export ni_remote_putx
+export ni_inv
+export ni_invack_exists_home
+export ni_invack_exists
+export ni_invack_1
+export ni_invack_2
+export ni_invack_3
+export ni_wb
+export ni_fack
+export ni_shwb
+export ni_replace
+export ni_replace_home
+
+
+
+conjecture ~(forall A,B.~(sta_Proc_ProcCmd(A) = node_none & sta_Proc_CacheState(A) = cache_i) & ~(sta_HomeProc_ProcCmd = node_none & sta_HomeProc_CacheState = cache_i & sta_Dir_Pending = false & sta_Dir_Dirty = true) & ~(sta_HomeProc_ProcCmd = node_none & sta_HomeProc_CacheState = cache_i & sta_Dir_Pending = false & sta_Dir_Dirty = false) & ~(sta_Proc_ProcCmd(A) = node_none & sta_Proc_CacheState(A) = cache_i) & ~(sta_HomeProc_ProcCmd = node_none & (sta_HomeProc_CacheState = cache_i | sta_HomeProc_CacheState = cache_s) & sta_Dir_Pending = false & sta_Dir_Dirty = true) & ~(sta_HomeProc_ProcCmd = node_none & (sta_HomeProc_CacheState = cache_i | sta_HomeProc_CacheState = cache_s) & sta_Dir_Pending = false & sta_Dir_Dirty = false & sta_Dir_HeadVld = true) & ~(sta_HomeProc_ProcCmd = node_none & (sta_HomeProc_CacheState = cache_i | sta_HomeProc_CacheState = cache_s) & sta_Dir_Pending = false & sta_Dir_Dirty = false & sta_Dir_HeadVld = false) & ~(sta_Proc_ProcCmd(A) = node_none & sta_Proc_CacheState(A) = cache_e) & ~(sta_HomeProc_ProcCmd = node_none & sta_HomeProc_CacheState = cache_e) & ~(sta_Proc_ProcCmd(A) = node_none & sta_Proc_CacheState(A) = cache_s) & ~(sta_HomeProc_ProcCmd = node_none & sta_HomeProc_CacheState = cache_s) & ~(sta_UniMsg_Cmd(A) = uni_nak) & ~(sta_HomeUniMsg_Cmd = uni_nak) & ~(sta_NakcMsg_Cmd = nakc_nakc) & ~(sta_UniMsg_Cmd(A) = uni_get & sta_UniMsg_HomeProc(A) = true & sta_RpMsg_Cmd(A) ~= rp_replace & (sta_Dir_Pending = true | sta_Dir_Dirty = true & sta_Dir_Local = true & sta_HomeProc_CacheState ~= cache_e | sta_Dir_Dirty = true & sta_Dir_Local = false & sta_Dir_HeadPtr = A & sta_Dir_HomeHeadPtr = false)) & ~(sta_UniMsg_Cmd(A) = uni_get & sta_UniMsg_HomeProc(A) = true & sta_RpMsg_Cmd(A) ~= rp_replace & sta_Dir_Pending = false & sta_Dir_Dirty = true & sta_Dir_Local = false & (sta_Dir_HeadPtr ~= A | sta_Dir_HomeHeadPtr = true)) & ~(sta_UniMsg_Cmd(A) = uni_get & sta_UniMsg_HomeProc(A) = true & sta_RpMsg_Cmd(A) ~= rp_replace & sta_Dir_Pending = false & sta_Dir_Dirty = false & sta_Dir_HeadVld = true) & ~(sta_UniMsg_Cmd(A) = uni_get & sta_UniMsg_HomeProc(A) = true & sta_RpMsg_Cmd(A) ~= rp_replace & sta_Dir_Pending = false & sta_Dir_Dirty = false & sta_Dir_HeadVld = false) & ~(sta_UniMsg_Cmd(A) = uni_get & sta_UniMsg_HomeProc(A) = true & sta_RpMsg_Cmd(A) ~= rp_replace & sta_Dir_Pending = false & sta_Dir_Dirty = true & sta_Dir_Local = true & sta_HomeProc_CacheState = cache_e) & ~(A ~= B & sta_UniMsg_Cmd(A) = uni_get & sta_UniMsg_Proc(A,B) = true & sta_UniMsg_HomeProc(A) = false & sta_Proc_CacheState(B) ~= cache_e) & ~(sta_HomeUniMsg_Cmd = uni_get & sta_HomeUniMsg_Proc = A & sta_HomeUniMsg_HomeProc = false & sta_Proc_CacheState(A) ~= cache_e) & ~(A ~= B & sta_UniMsg_Cmd(A) = uni_get & sta_UniMsg_Proc(A,B) = true & sta_UniMsg_HomeProc(A) = false & sta_Proc_CacheState(B) = cache_e) & ~(sta_HomeUniMsg_Cmd = uni_get & sta_HomeUniMsg_Proc = A & sta_HomeUniMsg_HomeProc = false & sta_Proc_CacheState(A) = cache_e) & ~(sta_UniMsg_Cmd(A) = uni_getx & sta_UniMsg_HomeProc(A) = true & (sta_Dir_Pending = true | sta_Dir_Dirty = true & sta_Dir_Local = true & sta_HomeProc_CacheState ~= cache_e | sta_Dir_Dirty = true & sta_Dir_Local = false & sta_Dir_HeadPtr = A & sta_Dir_HomeHeadPtr = false)) & ~(sta_UniMsg_Cmd(A) = uni_getx & sta_UniMsg_HomeProc(A) = true & sta_Dir_Pending = false & sta_Dir_Dirty = true & sta_Dir_Local = false & (sta_Dir_HeadPtr ~= A | sta_Dir_HomeHeadPtr = true)) & ~(sta_UniMsg_Cmd(A) = uni_getx & sta_UniMsg_HomeProc(A) = true & sta_Dir_Pending = false & sta_Dir_Dirty = false & sta_Dir_HeadVld = false & sta_Dir_Local = true & sta_HomeProc_ProcCmd = node_get) & ~(sta_UniMsg_Cmd(A) = uni_getx & sta_UniMsg_HomeProc(A) = true & sta_Dir_Pending = false & sta_Dir_Dirty = false & sta_Dir_HeadVld = false & sta_Dir_Local = true & sta_HomeProc_ProcCmd ~= node_get) & ~(sta_UniMsg_Cmd(A) = uni_getx & sta_UniMsg_HomeProc(A) = true & sta_Dir_Pending = false & sta_Dir_Dirty = false & sta_Dir_HeadVld = false & sta_Dir_Local = false) & ~(sta_UniMsg_Cmd(A) = uni_getx & sta_UniMsg_HomeProc(A) = true & sta_Dir_Pending = false & sta_Dir_Dirty = false & sta_Dir_HeadPtr = A & sta_Dir_HomeHeadPtr = false & sta_Dir_HomeShrSet = false & ((A ~= B) ->   sta_Dir_ShrSet(B) = false) & sta_Dir_Local = true & sta_HomeProc_ProcCmd = node_get) & ~(sta_UniMsg_Cmd(A) = uni_getx & sta_UniMsg_HomeProc(A) = true & sta_Dir_Pending = false & sta_Dir_Dirty = false & sta_Dir_HeadPtr = A & sta_Dir_HomeHeadPtr = false & sta_Dir_HomeShrSet = false & ((A ~= B) ->   sta_Dir_ShrSet(B) = false) & sta_Dir_Local = true & sta_HomeProc_ProcCmd ~= node_get) & ~(sta_UniMsg_Cmd(A) = uni_getx & sta_UniMsg_HomeProc(A) = true & sta_Dir_Pending = false & sta_Dir_Dirty = false & sta_Dir_HeadPtr = A & sta_Dir_HomeHeadPtr = false & sta_Dir_HomeShrSet = false & ((A ~= B) ->   sta_Dir_ShrSet(B) = false) & sta_Dir_Local = false) & ~(sta_UniMsg_Cmd(A) = uni_getx & sta_UniMsg_HomeProc(A) = true & sta_Dir_Pending = false & sta_Dir_Dirty = false & sta_Dir_HeadVld = true & (sta_Dir_HeadPtr ~= A | sta_Dir_HomeHeadPtr = true) & sta_Dir_Local = true & sta_HomeProc_ProcCmd ~= node_get) & ~(sta_UniMsg_Cmd(A) = uni_getx & sta_UniMsg_HomeProc(A) = true & sta_Dir_Pending = false & sta_Dir_Dirty = false & sta_Dir_HeadVld = true & (sta_Dir_HeadPtr ~= A | sta_Dir_HomeHeadPtr = true) & sta_Dir_Local = true & sta_HomeProc_ProcCmd = node_get) & ~(sta_UniMsg_Cmd(A) = uni_getx & sta_UniMsg_HomeProc(A) = true & sta_Dir_Pending = false & sta_Dir_Dirty = false & sta_Dir_HeadVld = true & sta_Dir_HeadPtr = A & sta_Dir_HomeHeadPtr = false & sta_Dir_HomeShrSet = true & sta_Dir_Local = true & sta_HomeProc_ProcCmd ~= node_get) & ~(sta_UniMsg_Cmd(A) = uni_getx & sta_UniMsg_HomeProc(A) = true & sta_Dir_Pending = false & sta_Dir_Dirty = false & sta_Dir_HeadVld = true & sta_Dir_HeadPtr = A & sta_Dir_HomeHeadPtr = false & sta_Dir_HomeShrSet = true & sta_Dir_Local = true & sta_HomeProc_ProcCmd = node_get) & ~(sta_UniMsg_Cmd(A) = uni_getx & sta_UniMsg_HomeProc(A) = true & sta_Dir_Pending = false & sta_Dir_Dirty = false & sta_Dir_HeadVld = true & sta_Dir_HeadPtr = A & sta_Dir_HomeHeadPtr = false & sta_Dir_ShrSet(B) = true & sta_Dir_Local = true & sta_HomeProc_ProcCmd ~= node_get) & ~(sta_UniMsg_Cmd(A) = uni_getx & sta_UniMsg_HomeProc(A) = true & sta_Dir_Pending = false & sta_Dir_Dirty = false & sta_Dir_HeadVld = true & sta_Dir_HeadPtr = A & sta_Dir_HomeHeadPtr = false & sta_Dir_ShrSet(B) = true & sta_Dir_Local = true & sta_HomeProc_ProcCmd = node_get) & ~(sta_UniMsg_Cmd(A) = uni_getx & sta_UniMsg_HomeProc(A) = true & sta_Dir_Pending = false & sta_Dir_Dirty = false & sta_Dir_HeadVld = true & (sta_Dir_HeadPtr ~= A | sta_Dir_HomeHeadPtr = true) & sta_Dir_Local = false) & ~(sta_UniMsg_Cmd(A) = uni_getx & sta_UniMsg_HomeProc(A) = true & sta_Dir_Pending = false & sta_Dir_Dirty = false & sta_Dir_HeadVld = true & sta_Dir_HeadPtr = A & sta_Dir_HomeHeadPtr = false & sta_Dir_HomeShrSet = true & sta_Dir_Local = false) & ~(sta_UniMsg_Cmd(A) = uni_getx & sta_UniMsg_HomeProc(A) = true & sta_Dir_Pending = false & sta_Dir_Dirty = false & sta_Dir_HeadVld = true & sta_Dir_HeadPtr = A & sta_Dir_HomeHeadPtr = false & sta_Dir_ShrSet(B) = true & sta_Dir_Local = false) & ~(sta_UniMsg_Cmd(A) = uni_getx & sta_UniMsg_HomeProc(A) = true & sta_Dir_Pending = false & sta_Dir_Dirty = true & sta_Dir_Local = true & sta_HomeProc_CacheState = cache_e) & ~(A ~= B & sta_UniMsg_Cmd(A) = uni_getx & sta_UniMsg_Proc(A,B) = true & sta_UniMsg_HomeProc(A) = false & sta_Proc_CacheState(B) ~= cache_e) & ~(sta_HomeUniMsg_Cmd = uni_getx & sta_HomeUniMsg_Proc = A & sta_HomeUniMsg_HomeProc = false & sta_Proc_CacheState(A) ~= cache_e) & ~(A ~= B & sta_UniMsg_Cmd(A) = uni_getx & sta_UniMsg_Proc(A,B) = true & sta_UniMsg_HomeProc(A) = false & sta_Proc_CacheState(B) = cache_e) & ~(sta_HomeUniMsg_Cmd = uni_getx & sta_HomeUniMsg_Proc = A & sta_HomeUniMsg_HomeProc = false & sta_Proc_CacheState(A) = cache_e) & ~(sta_HomeUniMsg_Cmd = uni_put) & ~(sta_UniMsg_Cmd(A) = uni_put) & ~(sta_HomeUniMsg_Cmd = uni_putx) & ~(sta_UniMsg_Cmd(A) = uni_putx & sta_Proc_ProcCmd(A) = node_getx) & ~(sta_InvMsg_Cmd(A) = inv_inv) & ~(sta_InvMsg_Cmd(A) = inv_invack & sta_Dir_Pending = true & sta_Dir_InvSet(A) = true & sta_Dir_HomeInvSet = true) & ~(sta_InvMsg_Cmd(A) = inv_invack & sta_Dir_Pending = true & sta_Dir_InvSet(A) = true & B ~= A & sta_Dir_InvSet(B) = true) & ~(sta_InvMsg_Cmd(A) = inv_invack & sta_Dir_Pending = true & sta_Dir_InvSet(A) = true & sta_Dir_Local = true & sta_Dir_Dirty = false & sta_Dir_HomeInvSet = false & (A = B | sta_Dir_InvSet(B) = false)) & ~(sta_InvMsg_Cmd(A) = inv_invack & sta_Dir_Pending = true & sta_Dir_InvSet(A) = true & sta_Dir_Local = false & sta_Dir_HomeInvSet = false & (A = B | sta_Dir_InvSet(B) = false)) & ~(sta_InvMsg_Cmd(A) = inv_invack & sta_Dir_Pending = true & sta_Dir_InvSet(A) = true & sta_Dir_Dirty = true & sta_Dir_HomeInvSet = false & (A = B | sta_Dir_InvSet(B) = false)) & ~(sta_WbMsg_Cmd = wb_wb) & ~(sta_ShWbMsg_Cmd = shwb_fack) & ~(sta_ShWbMsg_Cmd = shwb_shwb) & ~(sta_RpMsg_Cmd(A) = rp_replace) & ~(sta_HomeRpMsg_Cmd = rp_replace))
+
+axiom exists N1:node_t, N2:node_t.N1~=N2
+
+conjecture ~(sta_Dir_HomeInvSet = true)
+conjecture forall A, B.(A~=B) -> ~(sta_Dir_ShrSet(B) = true & sta_Dir_Dirty = true)
+conjecture forall B.~(sta_Dir_Local = false & sta_Dir_Dirty = true & sta_Dir_InvSet(B) = true & sta_Dir_HeadPtr = B)
+conjecture forall A.~(sta_Dir_Pending = false & sta_Dir_InvSet(A) = true & sta_Dir_Dirty = true)
+conjecture ~(sta_Dir_HomeShrSet = true)
+conjecture ~(sta_Dir_HomeHeadPtr = true & sta_Dir_Local = false & sta_Dir_Dirty = true)
+conjecture forall B.~(sta_UniMsg_HomeProc(B) = false & sta_Proc_ProcCmd(B) = node_getx & sta_Dir_Local = true & sta_Dir_HeadPtr = B)
+conjecture forall B.~(sta_Dir_InvSet(B) = false & sta_InvMsg_Cmd(B) = inv_invack)
+conjecture ~(sta_Dir_HeadVld = true & sta_Dir_Local = true & sta_Dir_Dirty = true)
+conjecture forall A.~(sta_UniMsg_HomeProc(A) = false & sta_UniMsg_Cmd(A) = uni_getx & sta_Dir_Local = true)
+conjecture forall A.~(sta_UniMsg_Cmd(A) = uni_putx & sta_Dir_Local = true)
+conjecture forall B.~(sta_Proc_CacheState(B) = cache_e & sta_Dir_Local = true)
+conjecture forall B.~(sta_Dir_HomeHeadPtr = true & sta_UniMsg_HomeProc(B) = false)
+conjecture forall A, B.(A~=B) -> ~(sta_Proc_CacheState(B) = cache_s & sta_Dir_Local = true & sta_Dir_InvSet(B) = false & sta_Dir_HeadPtr = A)
+conjecture ~(sta_HomeProc_CacheState = cache_i & sta_Dir_Local = true & sta_Dir_Dirty = true)
+conjecture ~(sta_HomeProc_CacheState = cache_s & sta_Dir_Dirty = true)
+conjecture forall B.~(sta_Dir_InvSet(B) = true & sta_Dir_Pending = true & sta_InvMsg_Cmd(B) = inv_none)
+conjecture ~(sta_Dir_HomeHeadPtr = true & sta_Dir_Pending = true)
+conjecture ~(sta_HomeProc_CacheState = cache_s & sta_Dir_Pending = true)
+conjecture forall B.~(sta_Proc_ProcCmd(B) = node_get & sta_UniMsg_Cmd(B) = uni_none)
+conjecture forall B.~(sta_Proc_ProcCmd(B) = node_getx & sta_UniMsg_Cmd(B) = uni_none)
+conjecture forall A, B.(A~=B) -> ~(sta_UniMsg_Cmd(A) = uni_get & sta_UniMsg_Cmd(B) = uni_get & sta_UniMsg_HomeProc(A) = false & sta_UniMsg_HomeProc(B) = false)
+conjecture forall A, B.(A~=B) -> ~(sta_UniMsg_Cmd(B) = uni_get & sta_UniMsg_HomeProc(A) = false & sta_UniMsg_Cmd(A) = uni_getx & sta_UniMsg_HomeProc(B) = false)
+conjecture forall A.~(sta_UniMsg_Cmd(A) = uni_putx & sta_Dir_Dirty = false)
+conjecture forall A.~(sta_UniMsg_Cmd(A) = uni_putx & sta_Proc_ProcCmd(A) = node_get)
+conjecture forall A, B.(A~=B) -> ~(sta_UniMsg_HomeProc(A) = false & sta_UniMsg_Cmd(A) = uni_getx & sta_UniMsg_HomeProc(B) = false & sta_UniMsg_Cmd(B) = uni_getx)
+conjecture ~(sta_HomeProc_ProcCmd = node_get & sta_Dir_Local = true)
+conjecture ~(sta_Dir_Local = true & sta_HomeProc_ProcCmd = node_getx)
+conjecture forall B.~(sta_UniMsg_Cmd(B) = uni_get & sta_Proc_ProcCmd(B) = node_getx)
+conjecture forall B.~(sta_Dir_Pending = false & sta_UniMsg_HomeProc(B) = false & sta_UniMsg_Cmd(B) = uni_getx)
+conjecture forall B.~(sta_UniMsg_Cmd(B) = uni_get & sta_Dir_Pending = false & sta_UniMsg_HomeProc(B) = false)
+conjecture ~(sta_ShWbMsg_HomeProc = true & sta_ShWbMsg_Cmd = shwb_shwb)
+conjecture ~(sta_HomeRpMsg_Cmd = rp_replace)
+conjecture forall B.~(sta_Dir_ShrSet(B) = true & sta_Dir_HeadVld = false)
+conjecture forall B.~(sta_Dir_InvSet(B) = true & sta_ShWbMsg_Cmd = shwb_fack)
+conjecture forall A.~(sta_Dir_InvSet(A) = true & sta_Dir_Pending = false & sta_Dir_HeadVld = false)
+conjecture forall A.~(sta_Dir_InvSet(A) = true & sta_NakcMsg_Cmd = nakc_nakc)
+conjecture forall A.~(sta_Dir_InvSet(A) = true & sta_HomeUniMsg_Cmd = uni_putx)
+conjecture ~(sta_ShWbMsg_HomeProc = true & sta_ShWbMsg_Cmd = shwb_fack)
+conjecture forall B.~(sta_Dir_HeadPtr = B & sta_Proc_ProcCmd(B) = node_getx & sta_UniMsg_HomeProc(B) = false & sta_Dir_Dirty = false)
+conjecture forall B.~(sta_Dir_HeadPtr = B & sta_Proc_ProcCmd(B) = node_getx & sta_UniMsg_HomeProc(B) = false & sta_HomeProc_CacheState = cache_e)
+conjecture forall B.~(sta_Dir_HeadPtr = B & sta_Proc_ProcCmd(B) = node_getx & sta_UniMsg_HomeProc(B) = false & sta_HomeUniMsg_Cmd = uni_put)
+conjecture forall B.~(sta_Dir_HeadPtr = B & sta_Proc_ProcCmd(B) = node_getx & sta_UniMsg_HomeProc(B) = false & sta_HomeUniMsg_Cmd = uni_putx)
+conjecture ~(sta_Dir_Local = true & sta_ShWbMsg_Cmd = shwb_fack)
+conjecture forall B.~(sta_InvMsg_Cmd(B) = inv_invack & sta_Dir_Pending = false)
+conjecture forall B.~(sta_Dir_InvSet(B) = false & sta_InvMsg_Cmd(B) = inv_inv)
+conjecture forall B.~(sta_InvMsg_Cmd(B) = inv_invack & sta_ShWbMsg_Cmd = shwb_shwb)
+conjecture forall B.~(sta_InvMsg_Cmd(B) = inv_invack & sta_Dir_ShrVld = true)
+conjecture forall A.~(sta_UniMsg_Cmd(A) = uni_getx & sta_UniMsg_HomeProc(A) = false & sta_HomeProc_CacheState = cache_e)
+conjecture forall A.~(sta_UniMsg_Cmd(A) = uni_getx & sta_UniMsg_HomeProc(A) = false & sta_HomeUniMsg_Cmd = uni_put)
+conjecture forall A.~(sta_UniMsg_Cmd(A) = uni_getx & sta_UniMsg_HomeProc(A) = false & sta_HomeUniMsg_Cmd = uni_putx)
+conjecture forall A.~(sta_UniMsg_Cmd(A) = uni_putx & sta_HomeProc_CacheState = cache_e)
+conjecture forall A.~(sta_UniMsg_Cmd(A) = uni_putx & sta_HomeUniMsg_Cmd = uni_put)
+conjecture forall A.~(sta_UniMsg_Cmd(A) = uni_putx & sta_HomeUniMsg_Cmd = uni_putx)
+conjecture forall B.~(sta_Proc_CacheState(B) = cache_e & sta_Dir_Dirty = false)
+conjecture forall B.~(sta_Proc_CacheState(B) = cache_e & sta_HomeProc_CacheState = cache_e)
+conjecture forall B.~(sta_Proc_CacheState(B) = cache_e & sta_HomeUniMsg_Cmd = uni_put)
+conjecture forall B.~(sta_Proc_CacheState(B) = cache_e & sta_HomeUniMsg_Cmd = uni_putx)
+conjecture forall A, B.(A~=B) -> ~(sta_Dir_HeadPtr = A & sta_Dir_InvSet(B) = false & sta_Proc_CacheState(B) = cache_s & sta_Dir_Pending = false)
+conjecture forall B.~(sta_Proc_CacheState(B) = cache_s & sta_Dir_HomeHeadPtr = true)
+conjecture forall A, B.(A~=B) -> ~(sta_Dir_HeadPtr = A & sta_Proc_CacheState(B) = cache_s & sta_Dir_ShrSet(B) = false & sta_HomeProc_CacheState = cache_s)
+conjecture forall A, B.(A~=B) -> ~(sta_Dir_HeadPtr = A & sta_Proc_CacheState(B) = cache_s & sta_Dir_ShrSet(B) = false & sta_Dir_Pending = false)
+conjecture forall A, B.(A~=B) -> ~(sta_Dir_HeadPtr = A & sta_Proc_CacheState(B) = cache_s & sta_Dir_ShrVld = false & sta_Dir_Pending = false)
+conjecture forall B.~(sta_Dir_InvSet(B) = false & sta_Proc_CacheState(B) = cache_s & sta_HomeProc_CacheState = cache_e)
+conjecture forall B.~(sta_Dir_InvSet(B) = false & sta_Proc_CacheState(B) = cache_s & sta_Dir_HeadVld = false)
+conjecture forall A, B.(A~=B) -> ~(sta_Dir_HeadPtr = A & sta_Proc_CacheState(B) = cache_s & sta_HomeUniMsg_Cmd = uni_put)
+conjecture forall A, B.(A~=B) -> ~(sta_Dir_HeadPtr = A & sta_Dir_InvSet(B) = false & sta_Dir_Local = true & sta_Proc_InvMarked(B) = false & sta_UniMsg_Cmd(B) = uni_put)
+conjecture forall B.~(sta_Proc_CacheState(B) = cache_s & sta_HomeUniMsg_Cmd = uni_putx)
+conjecture forall B.~(sta_Proc_CacheState(B) = cache_s & sta_InvMsg_Cmd(B) = inv_invack)
+conjecture ~(sta_Dir_Local = true & sta_ShWbMsg_Cmd = shwb_shwb)
+conjecture forall A, B.(A~=B) -> ~(sta_Dir_HeadPtr = A & sta_Dir_Local = true & sta_Proc_CacheState(B) = cache_s & sta_RpMsg_Cmd(B) = rp_replace)
+conjecture ~(sta_HomeProc_CacheState = cache_s & sta_Dir_Local = false)
+conjecture ~(sta_Dir_HomeHeadPtr = true & sta_Dir_HeadVld = true)
+conjecture ~(sta_HomeProc_CacheState = cache_e & sta_Dir_Local = false)
+conjecture ~(sta_HomeProc_CacheState = cache_e & sta_Dir_ShrVld = true)
+conjecture ~(sta_Dir_HomeHeadPtr = true & sta_Dir_Dirty = true & sta_HomeProc_CacheState = cache_i)
+conjecture forall A.~(sta_UniMsg_Cmd(A) = uni_putx & sta_WbMsg_Cmd = wb_wb)
+conjecture forall A.~(sta_UniMsg_Cmd(A) = uni_putx & sta_ShWbMsg_Cmd = shwb_shwb)
+conjecture ~(sta_Dir_Dirty = true & sta_Dir_HeadVld = false & sta_HomeProc_CacheState = cache_i)
+conjecture ~(sta_Dir_Dirty = true & sta_Dir_HeadVld = false & sta_Dir_Local = false)
+conjecture ~(sta_Dir_HeadVld = false & sta_Dir_ShrVld = true)
+conjecture forall A.~(sta_Proc_ProcCmd(A) = node_get & sta_UniMsg_Cmd(A) = uni_getx)
+conjecture forall B.~(sta_UniMsg_Cmd(B) = uni_getx & sta_UniMsg_HomeProc(B) = false & sta_NakcMsg_Cmd = nakc_nakc)
+conjecture forall A, B.(A~=B) -> ~(sta_UniMsg_Cmd(B) = uni_getx & sta_UniMsg_HomeProc(B) = false & sta_InvMsg_Cmd(A) = inv_invack)
+conjecture forall B.~(sta_UniMsg_Cmd(B) = uni_getx & sta_UniMsg_HomeProc(B) = false & sta_InvMsg_Cmd(B) = inv_invack)
+conjecture forall B.~(sta_UniMsg_Cmd(B) = uni_getx & sta_UniMsg_HomeProc(B) = false & sta_ShWbMsg_Cmd = shwb_fack)
+conjecture forall B.~(sta_UniMsg_Cmd(B) = uni_getx & sta_UniMsg_HomeProc(B) = false & sta_ShWbMsg_Cmd = shwb_shwb)
+conjecture forall B.~(sta_UniMsg_HomeProc(B) = false & sta_UniMsg_Cmd(B) = uni_get & sta_NakcMsg_Cmd = nakc_nakc)
+conjecture forall B.~(sta_UniMsg_HomeProc(B) = false & sta_UniMsg_Cmd(B) = uni_get & sta_HomeUniMsg_Cmd = uni_put)
+conjecture forall B.~(sta_UniMsg_HomeProc(B) = false & sta_UniMsg_Cmd(B) = uni_get & sta_HomeUniMsg_Cmd = uni_putx)
+conjecture forall A, B.(A~=B) -> ~(sta_UniMsg_HomeProc(B) = false & sta_UniMsg_Cmd(B) = uni_get & sta_InvMsg_Cmd(A) = inv_invack)
+conjecture forall B.~(sta_UniMsg_HomeProc(B) = false & sta_UniMsg_Cmd(B) = uni_get & sta_InvMsg_Cmd(B) = inv_invack)
+conjecture forall B.~(sta_UniMsg_HomeProc(B) = false & sta_UniMsg_Cmd(B) = uni_get & sta_ShWbMsg_Cmd = shwb_fack)
+conjecture forall B.~(sta_UniMsg_HomeProc(B) = false & sta_UniMsg_Cmd(B) = uni_get & sta_ShWbMsg_Cmd = shwb_shwb)
+conjecture forall B.~(sta_Dir_ShrSet(B) = true & sta_HomeUniMsg_Cmd = uni_putx)
+conjecture forall B.~(sta_Dir_ShrSet(B) = true & sta_WbMsg_Cmd = wb_wb)
+conjecture ~(sta_Dir_HeadVld = false & sta_ShWbMsg_Cmd = shwb_shwb)
+conjecture ~(sta_ShWbMsg_Cmd = shwb_fack & sta_Dir_Pending = false)
+conjecture forall B.~(sta_Dir_InvSet(B) = true & sta_Proc_CacheState(B) = cache_e)
+conjecture forall B.~(sta_Dir_InvSet(B) = true & sta_UniMsg_HomeProc(B) = false & sta_UniMsg_Cmd(B) = uni_getx)
+conjecture forall A.~(sta_Dir_InvSet(A) = true & sta_HomeUniMsg_Cmd = uni_put)
+conjecture forall A.~(sta_Dir_Pending = false & sta_Dir_InvSet(A) = true & sta_WbMsg_Cmd = wb_wb)
+conjecture ~(sta_NakcMsg_Cmd = nakc_nakc & sta_Dir_Pending = false)
+conjecture forall A.~(sta_Dir_InvSet(A) = true & sta_UniMsg_HomeProc(A) = false & sta_UniMsg_Cmd(A) = uni_get)
+conjecture forall A, B.(A~=B) -> ~(sta_Dir_InvSet(A) = true & sta_UniMsg_HomeProc(B) = false & sta_UniMsg_Cmd(B) = uni_get)
+conjecture forall A.~(sta_Dir_InvSet(A) = true & sta_HomeUniMsg_Cmd = uni_get)
+conjecture forall A, B.(A~=B) -> ~(sta_Dir_InvSet(A) = true & sta_UniMsg_HomeProc(B) = false & sta_UniMsg_Cmd(B) = uni_getx)
+conjecture forall A.~(sta_Dir_InvSet(A) = true & sta_HomeUniMsg_Cmd = uni_getx)
+conjecture ~(sta_NakcMsg_Cmd = nakc_nakc & sta_ShWbMsg_Cmd = shwb_shwb)
+conjecture ~(sta_HomeUniMsg_Cmd = uni_putx & sta_HomeProc_ProcCmd = node_none)
+conjecture ~(sta_HomeUniMsg_Cmd = uni_putx & sta_Dir_Pending = false)
+conjecture ~(sta_HomeUniMsg_Cmd = uni_putx & sta_ShWbMsg_Cmd = shwb_shwb)
+conjecture forall B.~(sta_UniMsg_HomeProc(B) = false & sta_Proc_ProcCmd(B) = node_getx & sta_Dir_HeadPtr = B & sta_WbMsg_Cmd = wb_wb)
+conjecture ~(sta_HomeProc_CacheState = cache_e & sta_ShWbMsg_Cmd = shwb_fack)
+conjecture forall B.~(sta_UniMsg_HomeProc(B) = false & sta_Proc_ProcCmd(B) = node_getx & sta_Dir_HeadPtr = B & sta_Proc_CacheState(A) = cache_e)
+conjecture forall B.~(sta_Proc_ProcCmd(B) = node_getx & sta_Proc_CacheState(B) = cache_e)
+conjecture ~(sta_HomeUniMsg_Cmd = uni_put & sta_ShWbMsg_Cmd = shwb_fack)
+conjecture ~(sta_HomeUniMsg_Cmd = uni_putx & sta_ShWbMsg_Cmd = shwb_fack)
+conjecture forall B.~(sta_InvMsg_Cmd(B) = inv_invack & sta_NakcMsg_Cmd = nakc_nakc)
+conjecture forall B.~(sta_InvMsg_Cmd(B) = inv_invack & sta_HomeUniMsg_Cmd = uni_put)
+conjecture forall B.~(sta_InvMsg_Cmd(B) = inv_invack & sta_HomeUniMsg_Cmd = uni_putx)
+conjecture forall B.~(sta_Dir_Pending = false & sta_InvMsg_Cmd(B) = inv_inv)
+conjecture forall B.~(sta_InvMsg_Cmd(B) = inv_invack & sta_ShWbMsg_Cmd = shwb_fack)
+conjecture forall B.~(sta_InvMsg_Cmd(B) = inv_inv & sta_ShWbMsg_Cmd = shwb_shwb)
+conjecture forall B.~(sta_InvMsg_Cmd(B) = inv_inv & sta_Dir_ShrVld = true)
+conjecture forall A.~(sta_UniMsg_HomeProc(A) = false & sta_UniMsg_Cmd(A) = uni_getx & sta_HomeUniMsg_Cmd = uni_get)
+conjecture ~(sta_HomeUniMsg_Cmd = uni_put & sta_Dir_Pending = false)
+conjecture forall A.~(sta_UniMsg_HomeProc(A) = false & sta_UniMsg_Cmd(A) = uni_getx & sta_HomeUniMsg_Cmd = uni_getx)
+conjecture forall A.~(sta_UniMsg_Cmd(A) = uni_putx & sta_Proc_CacheState(A) = cache_e)
+conjecture forall A, B.(A~=B) -> ~(sta_UniMsg_Cmd(A) = uni_putx & sta_Proc_CacheState(B) = cache_e)
+conjecture forall B.~(sta_Proc_CacheState(B) = cache_e & sta_WbMsg_Cmd = wb_wb)
+conjecture forall B.~(sta_Proc_CacheState(B) = cache_e & sta_ShWbMsg_Cmd = shwb_shwb)
+conjecture forall A, B.(A~=B) -> ~(sta_Proc_CacheState(B) = cache_e & sta_Proc_CacheState(A) = cache_e)
+conjecture forall B.~(sta_Proc_CacheState(B) = cache_s & sta_NakcMsg_Cmd = nakc_nakc)
+conjecture ~(sta_Dir_Pending = false & sta_HomeUniMsg_Cmd = uni_get)
+conjecture forall B.~(sta_Dir_Pending = false & sta_Proc_CacheState(B) = cache_s & sta_Dir_HeadVld = false)
+conjecture forall B.~(sta_Dir_Pending = false & sta_Proc_CacheState(B) = cache_s & sta_Dir_Dirty = true)
+conjecture forall A, B.(A~=B) -> ~(sta_Dir_Pending = false & sta_Dir_InvSet(B) = false & sta_Dir_HeadPtr = A & sta_Proc_InvMarked(B) = false & sta_UniMsg_Cmd(B) = uni_put)
+conjecture forall A, B.(A~=B) -> ~(sta_Proc_CacheState(B) = cache_s & sta_Dir_InvSet(B) = false & sta_InvMsg_Cmd(A) = inv_invack)
+conjecture forall B.~(sta_Proc_CacheState(B) = cache_s & sta_ShWbMsg_Cmd = shwb_fack)
+conjecture ~(sta_ShWbMsg_Proc = sta_Dir_HeadPtr & sta_ShWbMsg_Cmd = shwb_shwb)
+conjecture forall A, B.(A~=B) -> ~(sta_Dir_Pending = false & sta_Proc_CacheState(B) = cache_s & sta_Dir_HeadPtr = A & sta_RpMsg_Cmd(B) = rp_replace)
+conjecture ~(sta_Dir_HomeHeadPtr = true & sta_HomeUniMsg_Cmd = uni_get)
+conjecture forall B.~(sta_Dir_HomeHeadPtr = true & sta_UniMsg_Cmd(B) = uni_put)
+conjecture forall B.~(sta_HomeProc_CacheState = cache_s & sta_Proc_CacheState(B) = cache_e)
+conjecture forall A, B.(A~=B) -> ~(sta_HomeProc_CacheState = cache_s & sta_Dir_ShrSet(B) = false & sta_Dir_HeadPtr = A & sta_Proc_InvMarked(B) = false & sta_UniMsg_Cmd(B) = uni_put)
+conjecture forall A, B.(A~=B) -> ~(sta_HomeProc_CacheState = cache_s & sta_Proc_CacheState(B) = cache_s & sta_Dir_HeadPtr = A & sta_RpMsg_Cmd(B) = rp_replace)
+conjecture forall A, B.(A~=B) -> ~(sta_Dir_Pending = false & sta_Dir_ShrSet(B) = false & sta_Dir_HeadPtr = A & sta_Proc_InvMarked(B) = false & sta_UniMsg_Cmd(B) = uni_put)
+conjecture forall A, B.(A~=B) -> ~(sta_Dir_Pending = false & sta_Dir_ShrVld = false & sta_Dir_HeadPtr = A & sta_Proc_InvMarked(B) = false & sta_UniMsg_Cmd(B) = uni_put)
+conjecture forall B.~(sta_HomeProc_CacheState = cache_e & sta_Proc_CacheState(B) = cache_s & sta_Dir_Pending = false)
+conjecture forall B.~(sta_HomeProc_CacheState = cache_e & sta_Dir_InvSet(B) = false & sta_Proc_InvMarked(B) = false & sta_UniMsg_Cmd(B) = uni_put)
+conjecture ~(sta_HomeProc_CacheState = cache_e & sta_ShWbMsg_Cmd = shwb_shwb)
+conjecture forall B.~(sta_Dir_HeadVld = false & sta_Proc_CacheState(B) = cache_e)
+conjecture forall B.~(sta_Dir_HeadVld = false & sta_Dir_InvSet(B) = false & sta_Proc_InvMarked(B) = false & sta_UniMsg_Cmd(B) = uni_put)
+conjecture forall B.~(sta_Proc_CacheState(B) = cache_s & sta_Dir_InvSet(B) = false & sta_WbMsg_Cmd = wb_wb)
+conjecture forall B.~(sta_Proc_CacheState(B) = cache_s & sta_HomeUniMsg_Cmd = uni_get)
+conjecture ~(sta_HomeUniMsg_Proc ~= sta_Dir_HeadPtr & sta_HomeUniMsg_Cmd = uni_get)
+conjecture forall B.~(sta_HomeUniMsg_Cmd = uni_put & sta_Proc_InvMarked(B) = false & sta_UniMsg_Cmd(B) = uni_put)
+conjecture forall B.~(sta_UniMsg_Cmd(B) = uni_put & sta_Proc_InvMarked(B) = false & sta_HomeUniMsg_Cmd = uni_putx)
+conjecture forall B.~(sta_UniMsg_Cmd(B) = uni_put & sta_Proc_InvMarked(B) = false & sta_InvMsg_Cmd(B) = inv_invack)
+conjecture forall B.~(sta_UniMsg_Cmd(B) = uni_put & sta_RpMsg_Cmd(B) = rp_replace)
+conjecture forall B.~(sta_Proc_CacheState(B) = cache_s & sta_HomeUniMsg_Cmd = uni_getx)
+conjecture forall B.~(sta_InvMsg_Cmd(B) = inv_invack & sta_HomeUniMsg_Cmd = uni_get)
+conjecture ~(sta_ShWbMsg_Cmd = shwb_shwb & sta_Dir_Pending = false)
+conjecture ~(sta_ShWbMsg_Cmd = shwb_shwb & sta_HomeUniMsg_Cmd = uni_put)
+conjecture forall A, B.(A~=B) -> ~(sta_RpMsg_Cmd(B) = rp_replace & sta_Proc_CacheState(B) = cache_s & sta_Dir_HeadPtr = A & sta_HomeProc_CacheState = cache_e)
+conjecture ~(sta_Dir_HeadVld = true & sta_Dir_Dirty = false & sta_ShWbMsg_Cmd = shwb_fack)
+conjecture ~(sta_HomeProc_CacheState = cache_e & sta_Dir_Dirty = false)
+conjecture ~(sta_Dir_ShrVld = true & sta_HomeUniMsg_Cmd = uni_putx)
+conjecture ~(sta_WbMsg_Cmd = wb_wb & sta_Dir_Dirty = false)
+conjecture ~(sta_WbMsg_Cmd = wb_wb & sta_Dir_Local = true)
+conjecture ~(sta_Dir_ShrVld = true & sta_WbMsg_Cmd = wb_wb)
+conjecture forall A, B.(A~=B) -> ~(sta_UniMsg_HomeProc(B) = false & sta_UniMsg_Cmd(B) = uni_getx & sta_InvMsg_Cmd(A) = inv_inv)
+conjecture forall B.~(sta_UniMsg_HomeProc(B) = false & sta_UniMsg_Cmd(B) = uni_getx & sta_InvMsg_Cmd(B) = inv_inv)
+conjecture forall B.~(sta_UniMsg_Cmd(B) = uni_get & sta_UniMsg_HomeProc(B) = false & sta_HomeUniMsg_Cmd = uni_get)
+conjecture forall B.~(sta_UniMsg_Cmd(B) = uni_get & sta_UniMsg_HomeProc(B) = false & sta_HomeUniMsg_Cmd = uni_getx)
+conjecture forall A, B.(A~=B) -> ~(sta_UniMsg_Cmd(B) = uni_get & sta_UniMsg_HomeProc(B) = false & sta_InvMsg_Cmd(A) = inv_inv)
+conjecture forall B.~(sta_UniMsg_Cmd(B) = uni_get & sta_UniMsg_HomeProc(B) = false & sta_InvMsg_Cmd(B) = inv_inv)
+conjecture forall B.~(sta_Dir_ShrSet(B) = true & sta_HomeUniMsg_Cmd = uni_getx)
+conjecture forall A, B.(A~=B) -> ~(sta_Dir_ShrSet(B) = true & sta_Proc_CacheState(A) = cache_e)
+conjecture forall B.~(sta_Dir_ShrSet(B) = true & sta_Proc_CacheState(B) = cache_e)
+conjecture ~(sta_WbMsg_Cmd = wb_wb & sta_ShWbMsg_Cmd = shwb_shwb)
+conjecture ~(sta_ShWbMsg_Cmd = shwb_fack & sta_NakcMsg_Cmd = nakc_nakc)
+conjecture forall B.~(sta_Dir_InvSet(B) = true & sta_UniMsg_Cmd(B) = uni_putx)
+conjecture forall A, B.(A~=B) -> ~(sta_Dir_InvSet(A) = true & sta_Dir_Pending = false & sta_Proc_CacheState(B) = cache_e)
+conjecture ~(sta_Dir_Pending = false & sta_HomeUniMsg_Cmd = uni_getx)
+conjecture ~(sta_NakcMsg_Cmd = nakc_nakc & sta_HomeUniMsg_Cmd = uni_put)
+conjecture ~(sta_NakcMsg_Cmd = nakc_nakc & sta_HomeUniMsg_Cmd = uni_putx)
+conjecture forall A.~(sta_UniMsg_Cmd(A) = uni_get & sta_UniMsg_HomeProc(A) = false & sta_RpMsg_Cmd(A) = rp_replace)
+conjecture ~(sta_HomeUniMsg_Cmd = uni_get & sta_ShWbMsg_Cmd = shwb_shwb)
+conjecture ~(sta_HomeUniMsg_Cmd = uni_getx & sta_ShWbMsg_Cmd = shwb_shwb)
+conjecture ~(sta_HomeProc_ProcCmd = node_none & sta_HomeUniMsg_Cmd = uni_getx)
+conjecture forall A, B.(A~=B) -> ~(sta_Dir_HeadPtr = B & sta_Proc_ProcCmd(B) = node_getx & sta_UniMsg_HomeProc(B) = false & sta_UniMsg_Cmd(A) = uni_putx)
+conjecture ~(sta_ShWbMsg_Cmd = shwb_fack & sta_HomeUniMsg_Cmd = uni_get)
+conjecture ~(sta_ShWbMsg_Cmd = shwb_fack & sta_HomeUniMsg_Cmd = uni_getx)
+conjecture forall B.~(sta_InvMsg_Cmd(B) = inv_invack & sta_HomeUniMsg_Cmd = uni_getx)
+conjecture forall B.~(sta_NakcMsg_Cmd = nakc_nakc & sta_InvMsg_Cmd(B) = inv_inv)
+conjecture forall B.~(sta_HomeUniMsg_Cmd = uni_put & sta_InvMsg_Cmd(B) = inv_inv)
+conjecture forall B.~(sta_HomeUniMsg_Cmd = uni_putx & sta_InvMsg_Cmd(B) = inv_inv)
+conjecture forall B.~(sta_InvMsg_Cmd(B) = inv_inv & sta_ShWbMsg_Cmd = shwb_fack)
+conjecture forall A, B.(A~=B) -> ~(sta_UniMsg_Cmd(A) = uni_putx & sta_UniMsg_Cmd(B) = uni_putx)
+conjecture forall A, B.(A~=B) -> ~(sta_Proc_CacheState(B) = cache_s & sta_UniMsg_HomeProc(A) = false & sta_UniMsg_Cmd(A) = uni_get)
+conjecture forall B.~(sta_Proc_CacheState(B) = cache_s & sta_UniMsg_Cmd(B) = uni_get)
+conjecture ~(sta_NakcMsg_Cmd = nakc_nakc & sta_HomeUniMsg_Cmd = uni_get)
+conjecture forall A, B.(A~=B) -> ~(sta_Proc_CacheState(B) = cache_s & sta_UniMsg_HomeProc(A) = false & sta_UniMsg_Cmd(A) = uni_getx)
+conjecture forall B.~(sta_Proc_CacheState(B) = cache_s & sta_UniMsg_Cmd(B) = uni_getx)
+conjecture forall B.~(sta_NakcMsg_Cmd = nakc_nakc & sta_Proc_InvMarked(B) = false & sta_UniMsg_Cmd(B) = uni_put)
+conjecture ~(sta_Dir_HeadVld = false & sta_HomeUniMsg_Cmd = uni_put)
+conjecture forall B.~(sta_Dir_HeadVld = false & sta_Dir_Pending = false & sta_Proc_InvMarked(B) = false & sta_UniMsg_Cmd(B) = uni_put)
+conjecture forall B.~(sta_Proc_CacheState(B) = cache_s & sta_Dir_Pending = false & sta_WbMsg_Cmd = wb_wb)
+conjecture forall B.~(sta_Dir_Dirty = true & sta_Dir_Pending = false & sta_Proc_InvMarked(B) = false & sta_UniMsg_Cmd(B) = uni_put)
+conjecture forall A, B.(A~=B) -> ~(sta_UniMsg_Cmd(B) = uni_put & sta_Proc_InvMarked(B) = false & sta_Dir_InvSet(B) = false & sta_InvMsg_Cmd(A) = inv_invack)
+conjecture forall A, B.(A~=B) -> ~(sta_Dir_InvSet(B) = false & sta_Proc_CacheState(B) = cache_s & sta_InvMsg_Cmd(A) = inv_inv)
+conjecture forall A.~(sta_Dir_HeadPtr = A & sta_UniMsg_HomeProc(A) = false & sta_UniMsg_Cmd(A) = uni_get)
+conjecture forall A, B.(A~=B) -> ~(sta_RpMsg_Cmd(B) = rp_replace & sta_Dir_HeadPtr = A & sta_Proc_CacheState(B) = cache_s & sta_ShWbMsg_Cmd = shwb_shwb)
+conjecture forall B.~(sta_HomeProc_CacheState = cache_s & sta_UniMsg_Cmd(B) = uni_putx)
+conjecture forall B.~(sta_HomeProc_CacheState = cache_s & sta_InvMsg_Cmd(B) = inv_inv)
+conjecture forall B.~(sta_Dir_Pending = false & sta_HomeProc_CacheState = cache_e & sta_Proc_InvMarked(B) = false & sta_UniMsg_Cmd(B) = uni_put)
+conjecture forall B.~(sta_Dir_HeadVld = false & sta_UniMsg_Cmd(B) = uni_putx)
+conjecture forall B.~(sta_UniMsg_Cmd(B) = uni_put & sta_Proc_InvMarked(B) = false & sta_Dir_InvSet(B) = false & sta_WbMsg_Cmd = wb_wb)
+conjecture forall A, B.(A~=B) -> ~(sta_Dir_InvSet(B) = false & sta_Proc_CacheState(B) = cache_s & sta_Proc_CacheState(A) = cache_e)
+conjecture forall B.~(sta_HomeUniMsg_Cmd = uni_get & sta_Proc_InvMarked(B) = false & sta_UniMsg_Cmd(B) = uni_put)
+conjecture forall B.~(sta_Proc_InvMarked(B) = false & sta_UniMsg_Cmd(B) = uni_put & sta_HomeUniMsg_Cmd = uni_getx)
+conjecture forall B.~(sta_UniMsg_Cmd(B) = uni_put & sta_Proc_ProcCmd(B) = node_none)
+conjecture forall B.~(sta_UniMsg_Cmd(B) = uni_put & sta_Proc_ProcCmd(B) = node_getx)
+conjecture forall B.~(sta_HomeUniMsg_Cmd = uni_get & sta_InvMsg_Cmd(B) = inv_inv)
+conjecture ~(sta_Dir_Dirty = false & sta_HomeUniMsg_Cmd = uni_putx)
+conjecture ~(sta_HomeProc_CacheState = cache_e & sta_WbMsg_Cmd = wb_wb)
+conjecture ~(sta_Dir_ShrVld = true & sta_HomeUniMsg_Cmd = uni_getx)
+conjecture ~(sta_WbMsg_Cmd = wb_wb & sta_HomeUniMsg_Cmd = uni_put)
+conjecture ~(sta_WbMsg_Cmd = wb_wb & sta_HomeUniMsg_Cmd = uni_putx)
+conjecture forall A.~(sta_Dir_ShrVld = true & sta_Proc_CacheState(A) = cache_e)
+conjecture forall A, B.(A~=B) -> ~(sta_Dir_ShrSet(B) = true & sta_UniMsg_Cmd(A) = uni_putx)
+conjecture forall B.~(sta_Dir_ShrSet(B) = true & sta_UniMsg_Cmd(B) = uni_putx)
+conjecture forall A, B.(A~=B) -> ~(sta_Dir_Pending = false & sta_Dir_InvSet(A) = true & sta_UniMsg_Cmd(B) = uni_putx)
+conjecture ~(sta_HomeUniMsg_Cmd = uni_getx & sta_NakcMsg_Cmd = nakc_nakc)
+conjecture forall B.~(sta_HomeUniMsg_Cmd = uni_getx & sta_InvMsg_Cmd(B) = inv_inv)
+conjecture forall B.~(sta_UniMsg_Cmd(B) = uni_get & sta_Proc_CacheState(B) = cache_e)
+conjecture forall B.~(sta_UniMsg_Cmd(B) = uni_getx & sta_Proc_CacheState(B) = cache_e)
+conjecture forall B.~(sta_UniMsg_Cmd(B) = uni_put & sta_Proc_InvMarked(B) = false & sta_Dir_Pending = false & sta_WbMsg_Cmd = wb_wb)
+conjecture forall A, B.(A~=B) -> ~(sta_Dir_Pending = false & sta_Proc_CacheState(B) = cache_s & sta_Proc_CacheState(A) = cache_e)
+conjecture forall B.~(sta_Dir_InvSet(B) = false & sta_Proc_InvMarked(B) = false & sta_UniMsg_Cmd(B) = uni_put & sta_InvMsg_Cmd(A) = inv_inv)
+conjecture forall A, B.(A~=B) -> ~(sta_Dir_InvSet(B) = false & sta_Proc_InvMarked(B) = false & sta_UniMsg_Cmd(B) = uni_put & sta_Proc_CacheState(A) = cache_e)
+conjecture forall A, B.(A~=B) -> ~(sta_Proc_CacheState(B) = cache_s & sta_Dir_InvSet(B) = false & sta_UniMsg_Cmd(A) = uni_putx)
+conjecture forall B.~(sta_Proc_ProcCmd(B) = node_none & sta_UniMsg_Cmd(B) = uni_get)
+conjecture ~(sta_Dir_ShrVld = true & sta_Dir_Dirty = true)
+conjecture forall A.~(sta_Dir_ShrVld = true & sta_UniMsg_Cmd(A) = uni_putx)
+conjecture forall B.~(sta_UniMsg_Cmd(B) = uni_put & sta_Dir_HeadPtr = B & sta_Dir_Local = false & sta_Dir_Dirty = true)
+conjecture forall B.~(sta_Dir_Pending = false & sta_Proc_InvMarked(B) = false & sta_UniMsg_Cmd(B) = uni_put & sta_Proc_CacheState(A) = cache_e)
+conjecture forall A, B.(A~=B) -> ~(sta_Proc_CacheState(B) = cache_s & sta_Dir_Pending = false & sta_UniMsg_Cmd(A) = uni_putx)
+conjecture forall A, B.(A~=B) -> ~(sta_UniMsg_Cmd(B) = uni_put & sta_Proc_InvMarked(B) = false & sta_Dir_InvSet(B) = false & sta_UniMsg_Cmd(A) = uni_putx)
+conjecture forall A, B.(A~=B) -> ~(sta_UniMsg_Cmd(B) = uni_put & sta_Proc_InvMarked(B) = false & sta_Dir_Pending = false & sta_UniMsg_Cmd(A) = uni_putx)
+conjecture exists A.~(sta_Dir_InvSet(A) = false & sta_HomeProc_CacheState = cache_e & sta_Dir_Pending = true)
+conjecture exists A.~(sta_UniMsg_HomeProc(A) = false & sta_Proc_ProcCmd(A) = node_getx & sta_Dir_Dirty = false)
+conjecture exists A.~(sta_Dir_InvSet(A) = false & sta_Dir_HeadVld = false & sta_Dir_Dirty = true & sta_Dir_Pending = true)
+conjecture exists A.~(sta_Proc_ProcCmd(A) = node_getx & sta_UniMsg_HomeProc(A) = false & sta_HomeProc_CacheState = cache_e)
+conjecture exists A.~(sta_Proc_ProcCmd(A) = node_getx & sta_UniMsg_HomeProc(A) = false & sta_HomeUniMsg_Cmd = uni_put)
+conjecture exists A.~(sta_Proc_ProcCmd(A) = node_getx & sta_UniMsg_HomeProc(A) = false & sta_WbMsg_Cmd = wb_wb)
+conjecture exists A.~(sta_Proc_ProcCmd(A) = node_getx & sta_UniMsg_HomeProc(A) = false & sta_ShWbMsg_Cmd = shwb_shwb)
+conjecture exists A.~(sta_UniMsg_HomeProc(A) = false & sta_Proc_ProcCmd(A) = node_getx & sta_HomeUniMsg_Cmd = uni_putx)
+conjecture exists A.~((sta_Proc_CacheState(A) = cache_e | sta_Proc_ProcCmd(A) = node_getx & sta_UniMsg_HomeProc(A) = false) & sta_ShWbMsg_Cmd = shwb_fack)
+conjecture exists A.~((sta_UniMsg_Cmd(A) = uni_putx | sta_UniMsg_HomeProc(A) = false & sta_Proc_ProcCmd(A) = node_getx) & sta_ShWbMsg_Cmd = shwb_fack)
+conjecture exists A.~(sta_UniMsg_Cmd(A) = uni_get & sta_UniMsg_HomeProc(A) = false | sta_UniMsg_Cmd(A) = uni_put)
+conjecture exists A.~(sta_UniMsg_Cmd(A) = uni_getx & sta_UniMsg_HomeProc(A) = false | sta_UniMsg_Cmd(A) = uni_put)
+conjecture exists A.((sta_UniMsg_HomeProc(A) = false & sta_Proc_ProcCmd(A) = node_getx | sta_Proc_ProcCmd(A) = node_getx & sta_UniMsg_HomeProc(A) = false | sta_UniMsg_Cmd(A) = uni_put) & sta_Dir_Dirty = false & sta_WbMsg_Cmd = wb_wb & sta_ShWbMsg_Cmd = shwb_fack)

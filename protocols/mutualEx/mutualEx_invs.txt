@@ -1,0 +1,4 @@
+invariant "mutualEx_Try1_1"
+  !(n[1] = i_em & n[2] = t_em & x = false);
+invariant "mutualEx_Try1_1_Try2_1"
+  !(x = false & n[1] = i_em & n[2] = i_em);
