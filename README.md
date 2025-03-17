@@ -1,3 +1,5 @@
+Deadlock-Free Verification of Inductive Invariant-Based Protocols with Parameters with Parameters mainly refers to cache coherence protocols.
+
 The input file for the experiment is Murphi modeling of protocols.
 
 Output file for IVy modeling of protocols and inductive invariants.
