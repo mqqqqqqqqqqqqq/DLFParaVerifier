@@ -12,11 +12,12 @@ Program execution steps:
     python3 server/server.py
     ```
 
-2. Inductive invariants for obtaining agreements:
+2. Inductive invariants for obtaining agreements, take the mutualEx protocol as an example:
 
     ```
-    python DLfree/auxinvPro.py
+    python DLfree/auxinvPro.py [-p] ./protocols/mutualEx/mutualEx
     ```
+    The -p parameter is optional, if you need to promote with parameters then use -p, if not no need to use the.
 
 4. Verifying generalizability needs to be executed on a local VM with IVy, using the example of mutualEx:
 
