@@ -37,19 +37,19 @@ Notes on individual folders:
 
 1. The WiseParaVerifier folder holds the source program for the WiseParaVerifier tool.
 
-    invFinder.py i.e. the main program to find auxiliary invariants.
-    concretedF.py contains rules and invariants for instantiation, and a rewritten interface for constructing deadlock-free formulas.
+    `invFinder.py` i.e. the main program to find auxiliary invariants.
+    `concretedF.py` contains rules and invariants for instantiation, and a rewritten interface for constructing deadlock-free formulas.
 
 2. The source program for this job is in DLfree.
 
-   auxinvPro.py contains the WiseParaVerifier interface for promoting and calling. WiseParaVerifier with parameters.
+   `auxinvPro.py` contains the WiseParaVerifier interface for promoting and calling. WiseParaVerifier with parameters.
 
-4. The protocols contain various protocols and invariants.
+4. The `protocols` contain various protocols and invariants.
 
-5. serverCe is the server side of NuSMV.
+5. `serverCe` is the server side of NuSMV.
 
-6. client.py is the client for NuSMV.
+6. `client.py` is the client for NuSMV.
 
-7. murphi.py and murphiparser.py are compilation and conversion programs.
+7. `murphi.py` and murphiparser.py are compilation and conversion programs.
 
-Finally for a detailed tutorial on installing IVy please refer to the blog `<https://blog.csdn.net/yucici_/article/details/131151448?spm=1001.2014.3001.5501>`
+For a detailed tutorial on installing IVy please refer to the blog `<https://blog.csdn.net/yucici_/article/details/131151448?spm=1001.2014.3001.5501>`
