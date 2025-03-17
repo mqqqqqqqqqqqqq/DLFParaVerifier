@@ -1,3 +1,7 @@
+The input file for the experiment is Murphi modeling of protocols.
+
+Output file for IVy modeling of protocols and inductive invariants.
+
 Program execution steps:
 
 1. Starting the NuSMV server:
