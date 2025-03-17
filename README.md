@@ -3,15 +3,20 @@ Program execution steps:
 1. Starting the NuSMV server:
 
     ```cd /serverCe
-    python3 server/server.py```
+    python3 server/server.py
+    ```
 
 2. Inductive invariants for obtaining agreements:
 
-    ```python DLfree/auxinvPro.py```
+    ```
+    python DLfree/auxinvPro.py
+    ```
 
-3. Verifying generalizability needs to be executed on a local VM with IVy, using the example of mutualEx:
+4. Verifying generalizability needs to be executed on a local VM with IVy, using the example of mutualEx:
 
-    ```ivy_check mutualEx_prove.ivy```
+    ```
+    ivy_check mutualEx_prove.ivy
+    ```
 
 
 
