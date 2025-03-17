@@ -45,4 +45,4 @@ Notes on individual folders:
 
 7. murphi.py and murphiparser.py are compilation and conversion programs.
 
-Finally for a detailed tutorial on installing IVy please refer to the blog <`https://blog.csdn.net/yucici_/article/details/131151448?spm=1001.2014.3001.5501`>
+Finally for a detailed tutorial on installing IVy please refer to the blog `<https://blog.csdn.net/yucici_/article/details/131151448?spm=1001.2014.3001.5501>`
