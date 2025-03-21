@@ -8,7 +8,8 @@ Program execution steps:
 
 1. Starting the NuSMV server:
 
-    ```cd /serverCe
+    ```
+    cd /serverCe
     python3 server/server.py
     ```
 
