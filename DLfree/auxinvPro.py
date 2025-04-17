@@ -16,6 +16,7 @@ import copy
 from collections import Counter
 import client
 import lark
+import psutil
 
 # 检查是否提供了参数 -p
 def get_comdpara():
@@ -45,7 +46,7 @@ def call_wiseParaverifier(protocol_path, protocol_name):
     # print(protocol_name)
 
     # smv_content = str(parse_file(protocol_path + ".m", smvSelect=True))
-    # with open(protocol_path + ".smv", "w") as f:
+    # with open(protocol_path + "_node3.smv", "w") as f:
     #     f.write(str(smv_content))
 
     # using smv as checker
@@ -287,6 +288,12 @@ def char_replace_num(form, issame):
                     ivy_form = str(new_form.expr1.v.v).lower() + "_" + str(new_form.expr1.v.field) + "_" + str(new_form.expr1.field) + " " + str(new_form.op) + " " + str(new_form.expr2.v.v).lower() + "_" + str(new_form.expr2.v.field) + "_" + str(new_form.expr2.field)
                 # print(str(new_form.expr1.v.v).lower() + "_" + str(new_form.expr1.v.field) + "_" + new_form.expr1.field)
                 else:
+                    if isinstance(new_form.expr2, murphi.VarExpr):
+                        if issame:
+                            new_form.expr2 = murphi.VarExpr("A", new_form.expr2.typ)
+                            new_idx = "A"
+                        else:
+                            new_idx = num_to_char(new_form.expr2.name)
                     ivy_form = str(new_form.expr1.v.v).lower() + "_" + str(new_form.expr1.v.field) + "_" + str(new_form.expr1.field) + " " + str(new_form.op) + " " + str(new_form.expr2).lower()
         elif isinstance(new_form.expr1, murphi.ArrayIndex):
             if isinstance(new_form.expr1.v, murphi.FieldName) and isinstance(new_form.expr1.idx, murphi.VarExpr):
@@ -418,27 +425,25 @@ def merger_promotion(inv_name, inv_split):
     merge_dict = dict()
     same_ruleN = dict()
     if len(field_dict) == 1:
-        same_ruleN = fifth_method(field_dict, global_list, inv_name, same_ruleN)
+        same_ruleN = get_oneNInv(field_dict, global_list, inv_name, same_ruleN)
     elif left_term and right_term:
-        conjecture, merge_dict = first_method(field_dict, global_list)
-    elif left_term and not right_term:
-        conjecture, merge_dict = second_method(field_dict, global_list)
+        conjecture, merge_dict = get_combpro1(field_dict, global_list)
     else:
-        conjecture, merge_dict = third_method(field_dict, global_list)
+        conjecture, merge_dict = get_combpro2(field_dict, global_list)
     
     # print(conjecture, merge_dict)
 
     return conjecture, merge_dict, same_ruleN
 
 
-def first_method(field_dict, global_list):
+def get_combpro1(field_dict, global_list):
     first_key = next(iter(field_dict))
     ivy_list = list()
     exists_term = list()
     merge_dict = dict()
 
     for formula in field_dict[first_key]:
-        ivy_form, new_idx = char_replace_num(formula, False)
+        ivy_form, new_idx = char_replace_num(formula, True)
         exists_term.append(ivy_form)
     classifier = "exists " + new_idx + ". "
 
@@ -453,8 +458,9 @@ def first_method(field_dict, global_list):
 
     return conjecture, merge_dict
 
+def get_combpro2(field_dict, global_list):
+    # print("get_combpro3: ", field_dict, global_list)
 
-def second_method(field_dict, global_list):
     ivy_list = list()
     exists_term = dict()
     merge_dict = dict()
@@ -465,43 +471,8 @@ def second_method(field_dict, global_list):
             ivy_form, new_idx = char_replace_num(form, True)
             et.append(ivy_form)
         exists_term[n] = et
-    classifier = "exists " + new_idx + ". "
-
-    sub_exists = list()
-    for k, v in exists_term.items():
-        if "local" in merge_dict.keys():
-            merge_dict["local"].append(v)
-        else:
-            merge_dict["local"] = [v]
-        sub_exists.append(and_statements(v))
-    ivy_list.append(or_statements(sub_exists))
-
-    global_list.sort()
-    for form in global_list:
-        ivy_list.append(str(form))
-    conjecture = "conjecture " + classifier + f"~({and_statements(ivy_list)})"
-
-    merge_dict['global'] = global_list
-
-    return conjecture, merge_dict
-
-def third_method(field_dict, global_list):
-    # print("third_method: ", field_dict, global_list)
-
-    ivy_list = list()
-    exists_term = dict()
-    merge_dict = dict()
-    idx_list = list()
-
-    for n, formula in field_dict.items():
-        et = list()
-        for form in formula:
-            ivy_form, new_idx = char_replace_num(form, False)
-            et.append(ivy_form)
-        idx_list.append(new_idx)
-        exists_term[n] = et
     
-    classifier = "exists " + ",".join(idx_list) + ". " + f"({idx_list[0]} ~= {idx_list[1]})" + " -> "
+    classifier = "exists " + new_idx + ". "
 
     sub_exists = list()
     for k, v in exists_term.items():
@@ -579,7 +550,7 @@ def fourth_method(tmp_merge, all_merge):
     # print(result, conj, reconj)
     return result, conj, reconj
 
-def fifth_method(field_dict, global_list, inv_name, same_ruleN):
+def get_oneNInv(field_dict, global_list, inv_name, same_ruleN):
     rule_name = str("_".join(inv_name.split("_")[-2:]))
     first_key = next(iter(field_dict))
 
@@ -646,7 +617,7 @@ def remove_duplicate(tmp_merge, all_merge):
     
     return result
 
-def fifth_comb(inv_list):
+def get_1NCMPInv(inv_list):
     field_list = list()
     global_list = list()
     for inv in inv_list:
@@ -737,10 +708,12 @@ def comb_promotion(wpInv, protocol_name, protocol_path):
 
 
                 all_merge[inv_name] = [conjecture, merge_dict]
-        
-    for _, inv_list in same_ruleN.items():
-        conjecture = fifth_comb(inv_list)
-        all_conj.append(conjecture)
+
+
+    if same_ruleN:
+        for _, inv_list in same_ruleN.items():
+            conjecture = get_1NCMPInv(inv_list)
+            all_conj.append(conjecture)
     
     # print(all_conj)
 
@@ -749,7 +722,10 @@ def comb_promotion(wpInv, protocol_name, protocol_path):
         
     
     appendCont_and_save(protocol_path+".ivy", ivy_forms, protocol_path+"_prove.ivy")
-        
+
+def get_memory_usage():
+    process = psutil.Process(os.getpid())
+    return process.memory_info().rss      
 
 def DLfree_verification():
     protocol_path, is_combpro = get_comdpara()
@@ -772,8 +748,12 @@ if __name__ == "__main__":
 
     DLfree_verification()
 
+    memory_usage = get_memory_usage()
+
     end_time = time.time()
 
     all_times = end_time - start_time
+
+    print(f"Memory usage: {memory_usage / 1024 / 1024:.2f} MB")
 
     print(f"ALL TIMES: {all_times:.6f} s")
