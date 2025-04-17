@@ -10,7 +10,7 @@ Program execution steps:
 
     ```
     cd /serverCe
-    python3 server/server.py
+    python server/server.py
     ```
 
 2. Inductive invariants for obtaining agreements, take the mutualEx protocol as an example:
