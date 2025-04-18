@@ -6,28 +6,32 @@ type other_t = {other_em}
 
 type cache_state_t = {i_em, s_em, e_em}
 
-type msg_cmd_t = {empty_em, reqs_em, reqe_em, inv_em, invack_em, gnts_em, gnte_em}
+type msg_cmd1_t = {empty1_em, reqs_em, reqe_em}
+
+type msg_cmd2_t = {empty2_em, inv_em, gnts_em, gnte_em}
+
+type msg_cmd3_t = {empty3_em, invack_em}
 
 individual cache_State(G:node_t) : cache_state_t
 
-individual chan1_Cmd(V:node_t) : msg_cmd_t
+individual chan1_Cmd(V:node_t) : msg_cmd1_t
 
-individual chan2_Cmd(F:node_t) : msg_cmd_t
+individual chan2_Cmd(F:node_t) : msg_cmd2_t
 
-individual chan3_Cmd(S:node_t) : msg_cmd_t
+individual chan3_Cmd(S:node_t) : msg_cmd3_t
 
 individual invset(F:node_t) : bool
 individual shrset(K:node_t) : bool
 individual exgntd : bool
-individual curcmd : msg_cmd_t
+individual curcmd : msg_cmd1_t
 
 
 after init{
-    chan1_Cmd(A) := empty_em;
+    chan1_Cmd(A) := empty1_em;
     
-    chan2_Cmd(A) := empty_em;
+    chan2_Cmd(A) := empty2_em;
     
-    chan3_Cmd(A) := empty_em;
+    chan3_Cmd(A) := empty3_em;
     
     cache_State(A) := i_em;
     
@@ -37,7 +41,7 @@ after init{
     
     exgntd := false;
 
-    curcmd := empty_em;
+    curcmd := empty1_em;
 
 }
 
@@ -45,7 +49,7 @@ after init{
 action recvgnte(i: node_t) = {
     require chan2_Cmd(i) = gnte_em;
     cache_State(i) := e_em;
-    chan2_Cmd(i) := empty_em;
+    chan2_Cmd(i) := empty2_em;
 }
 
 
@@ -53,33 +57,33 @@ action recvgnte(i: node_t) = {
 action recvgnts(i: node_t) = {
     require chan2_Cmd(i) = gnts_em;
     cache_State(i) := s_em;
-    chan2_Cmd(i) := empty_em;
+    chan2_Cmd(i) := empty2_em;
 }
 
 
 
 action sendgnte(i: node_t) = {
-    require curcmd = reqe_em & chan2_Cmd(i) = empty_em & exgntd = false & shrset(A) = false;
+    require curcmd = reqe_em & chan2_Cmd(i) = empty2_em & exgntd = false & shrset(A) = false;
     chan2_Cmd(i) := gnte_em;
     shrset(i) := true;
     exgntd := true;
-    curcmd := empty_em;
+    curcmd := empty1_em;
 }
 
 
 
 action sendgnts(i: node_t) = {
-    require curcmd = reqs_em & chan2_Cmd(i) = empty_em & exgntd = false;
+    require curcmd = reqs_em & chan2_Cmd(i) = empty2_em & exgntd = false;
     chan2_Cmd(i) := gnts_em;
     shrset(i) := true;
-    curcmd := empty_em;
+    curcmd := empty1_em;
 }
 
 
 
 action recvinvack1(i: node_t) = {
-    require chan3_Cmd(i) = invack_em & curcmd ~= empty_em & exgntd = true;
-    chan3_Cmd(i) := empty_em;
+    require chan3_Cmd(i) = invack_em & curcmd ~= empty1_em & exgntd = true;
+    chan3_Cmd(i) := empty3_em;
     shrset(i) := false;
     exgntd := false;
 }
@@ -87,16 +91,16 @@ action recvinvack1(i: node_t) = {
 
 
 action recvinvack2(i: node_t) = {
-    require chan3_Cmd(i) = invack_em & curcmd ~= empty_em & exgntd = false;
-    chan3_Cmd(i) := empty_em;
+    require chan3_Cmd(i) = invack_em & curcmd ~= empty1_em & exgntd = false;
+    chan3_Cmd(i) := empty3_em;
     shrset(i) := false;
 }
 
 
 
 action sendinvack(i: node_t) = {
-    require chan2_Cmd(i) = inv_em & chan3_Cmd(i) = empty_em;
-    chan2_Cmd(i) := empty_em;
+    require chan2_Cmd(i) = inv_em & chan3_Cmd(i) = empty3_em;
+    chan2_Cmd(i) := empty2_em;
     chan3_Cmd(i) := invack_em;
     cache_State(i) := i_em;
 }
@@ -104,7 +108,7 @@ action sendinvack(i: node_t) = {
 
 
 action sendinv(i: node_t) = {
-    require chan2_Cmd(i) = empty_em & invset(i) = true & (curcmd = reqe_em | curcmd = reqs_em & exgntd = true);
+    require chan2_Cmd(i) = empty2_em & invset(i) = true & (curcmd = reqe_em | curcmd = reqs_em & exgntd = true);
     chan2_Cmd(i) := inv_em;
     invset(i) := false;
 }
@@ -112,32 +116,32 @@ action sendinv(i: node_t) = {
 
 
 action recvreqe(i: node_t) = {
-    require curcmd = empty_em & chan1_Cmd(i) = reqe_em;
+    require curcmd = empty1_em & chan1_Cmd(i) = reqe_em;
     curcmd := reqe_em;
-    chan1_Cmd(i) := empty_em;
+    chan1_Cmd(i) := empty1_em;
     invset(A) := shrset(A);
 }
 
 
 
 action recvreqs(i: node_t) = {
-    require curcmd = empty_em & chan1_Cmd(i) = reqs_em;
+    require curcmd = empty1_em & chan1_Cmd(i) = reqs_em;
     curcmd := reqs_em;
-    chan1_Cmd(i) := empty_em;
+    chan1_Cmd(i) := empty1_em;
     invset(A) := shrset(A);
 }
 
 
 
 action sendreqe(i: node_t) = {
-    require chan1_Cmd(i) = empty_em & (cache_State(i) = i_em | cache_State(i) = s_em);
+    require chan1_Cmd(i) = empty1_em & (cache_State(i) = i_em | cache_State(i) = s_em);
     chan1_Cmd(i) := reqe_em;
 }
 
 
 
 action sendreqs(i: node_t) = {
-    require chan1_Cmd(i) = empty_em & cache_State(i) = i_em;
+    require chan1_Cmd(i) = empty1_em & cache_State(i) = i_em;
     chan1_Cmd(i) := reqs_em;
 }
 
